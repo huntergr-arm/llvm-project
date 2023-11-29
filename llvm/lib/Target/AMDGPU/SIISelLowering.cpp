@@ -1462,12 +1462,13 @@ bool SITargetLowering::isLegalFlatAddressingMode(const AddrMode &AM,
   if (!Subtarget->hasFlatInstOffsets()) {
     // Flat instructions do not have offsets, and only have the register
     // address.
-    return AM.BaseOffs == 0 && AM.Scale == 0;
+    return AM.BaseOffs.isZero() && AM.Scale == 0;
   }
 
   return AM.Scale == 0 &&
-         (AM.BaseOffs == 0 || Subtarget->getInstrInfo()->isLegalFLATOffset(
-                                  AM.BaseOffs, AddrSpace, FlatVariant));
+         (AM.BaseOffs.isZero() ||
+          Subtarget->getInstrInfo()->isLegalFLATOffset(
+              AM.BaseOffs.getFixedValue(), AddrSpace, FlatVariant));
 }
 
 bool SITargetLowering::isLegalGlobalAddressingMode(const AddrMode &AM) const {
@@ -1503,7 +1504,7 @@ bool SITargetLowering::isLegalMUBUFAddressingMode(const AddrMode &AM) const {
   // implemented as mubuf instructions with offen bit set, so slightly
   // different than the normal addr64.
   const SIInstrInfo *TII = Subtarget->getInstrInfo();
-  if (!TII->isLegalMUBUFImmOffset(AM.BaseOffs))
+  if (!TII->isLegalMUBUFImmOffset(AM.BaseOffs.getFixedValue()))
     return false;
 
   // FIXME: Since we can split immediate into soffset and immediate offset,
@@ -1545,7 +1546,7 @@ bool SITargetLowering::isLegalAddressingMode(const DataLayout &DL,
     // If the offset isn't a multiple of 4, it probably isn't going to be
     // correctly aligned.
     // FIXME: Can we get the real alignment here?
-    if (AM.BaseOffs % 4 != 0)
+    if (AM.BaseOffs.getFixedValue() % 4 != 0)
       return isLegalMUBUFAddressingMode(AM);
 
     if (!Subtarget->hasScalarSubwordLoads()) {
@@ -1559,21 +1560,21 @@ bool SITargetLowering::isLegalAddressingMode(const DataLayout &DL,
 
     if (Subtarget->getGeneration() == AMDGPUSubtarget::SOUTHERN_ISLANDS) {
       // SMRD instructions have an 8-bit, dword offset on SI.
-      if (!isUInt<8>(AM.BaseOffs / 4))
+      if (!isUInt<8>(AM.BaseOffs.getFixedValue() / 4))
         return false;
     } else if (Subtarget->getGeneration() == AMDGPUSubtarget::SEA_ISLANDS) {
       // On CI+, this can also be a 32-bit literal constant offset. If it fits
       // in 8-bits, it can use a smaller encoding.
-      if (!isUInt<32>(AM.BaseOffs / 4))
+      if (!isUInt<32>(AM.BaseOffs.getFixedValue() / 4))
         return false;
     } else if (Subtarget->getGeneration() < AMDGPUSubtarget::GFX9) {
       // On VI, these use the SMEM format and the offset is 20-bit in bytes.
-      if (!isUInt<20>(AM.BaseOffs))
+      if (!isUInt<20>(AM.BaseOffs.getFixedValue()))
         return false;
     } else if (Subtarget->getGeneration() < AMDGPUSubtarget::GFX12) {
       // On GFX9 the offset is signed 21-bit in bytes (but must not be negative
       // for S_BUFFER_* instructions).
-      if (!isInt<21>(AM.BaseOffs))
+      if (!isInt<21>(AM.BaseOffs.getFixedValue()))
         return false;
     } else {
       // On GFX12, all offsets are signed 24-bit in bytes.
@@ -1602,7 +1603,7 @@ bool SITargetLowering::isLegalAddressingMode(const DataLayout &DL,
     // field.
     // XXX - If doing a 4-byte aligned 8-byte type access, we effectively have
     // an 8-bit dword offset but we don't know the alignment here.
-    if (!isUInt<16>(AM.BaseOffs))
+    if (!isUInt<16>(AM.BaseOffs.getFixedValue()))
       return false;
 
     if (AM.Scale == 0) // r + i or just i, depending on HasBaseReg.
@@ -11168,7 +11169,7 @@ SDValue SITargetLowering::performSHLPtrCombine(SDNode *N,
 
   AddrMode AM;
   AM.HasBaseReg = true;
-  AM.BaseOffs = Offset.getSExtValue();
+  AM.BaseOffs = AddressOffset::getFixed(Offset.getSExtValue());
   if (!isLegalAddressingMode(DCI.DAG.getDataLayout(), AM, Ty, AddrSpace))
     return SDValue();
 

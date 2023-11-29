@@ -16820,11 +16820,12 @@ bool PPCTargetLowering::isLegalAddressingMode(const DataLayout &DL,
   // in pass PPCLoopInstrFormPrep. Also in LSR, for one LSRUse, it uses min and
   // max offset to check legal addressing mode, we should be a little aggressive
   // to contain other offsets for that LSRUse.
-  if (Ty->isVectorTy() && AM.BaseOffs != 0 && !Subtarget.hasP9Vector())
+  if (Ty->isVectorTy() && AM.BaseOffs.isNonZero() && !Subtarget.hasP9Vector())
     return false;
 
   // PPC allows a sign-extended 16-bit immediate field.
-  if (AM.BaseOffs <= -(1LL << 16) || AM.BaseOffs >= (1LL << 16)-1)
+  if (AM.BaseOffs.getFixedValue() <= -(1LL << 16) ||
+      AM.BaseOffs.getFixedValue() >= (1LL << 16) - 1)
     return false;
 
   // No global is ever allowed as a base.

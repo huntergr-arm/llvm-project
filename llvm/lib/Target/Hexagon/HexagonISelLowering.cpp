@@ -3669,10 +3669,10 @@ bool HexagonTargetLowering::isLegalAddressingMode(const DataLayout &DL,
     // LSR into crashing.
     Align A = DL.getABITypeAlign(Ty);
     // The base offset must be a multiple of the alignment.
-    if (!isAligned(A, AM.BaseOffs))
+    if (!isAligned(A, AM.BaseOffs.getFixedValue()))
       return false;
     // The shifted offset must fit in 11 bits.
-    if (!isInt<11>(AM.BaseOffs >> Log2(A)))
+    if (!isInt<11>(AM.BaseOffs.getFixedValue() >> Log2(A)))
       return false;
   }
 

@@ -1678,8 +1678,9 @@ static bool isAMCompletelyFolded(const TargetTransformInfo &TTI,
                                  Instruction *Fixup/*= nullptr*/) {
   switch (Kind) {
   case LSRUse::Address:
-    return TTI.isLegalAddressingMode(AccessTy.MemTy, BaseGV, BaseOffset,
-                                     HasBaseReg, Scale, AccessTy.AddrSpace, Fixup);
+    return TTI.isLegalAddressingMode(
+        AccessTy.MemTy, BaseGV, AddressOffset::getFixed(BaseOffset), HasBaseReg,
+        Scale, AccessTy.AddrSpace, Fixup);
 
   case LSRUse::ICmpZero:
     // There's not even a target hook for querying whether it would be legal to
@@ -1817,10 +1818,12 @@ static InstructionCost getScalingFactorCost(const TargetTransformInfo &TTI,
   case LSRUse::Address: {
     // Check the scaling factor cost with both the min and max offsets.
     InstructionCost ScaleCostMinOffset = TTI.getScalingFactorCost(
-        LU.AccessTy.MemTy, F.BaseGV, F.BaseOffset + LU.MinOffset, F.HasBaseReg,
+        LU.AccessTy.MemTy, F.BaseGV,
+        AddressOffset::getFixed(F.BaseOffset + LU.MinOffset), F.HasBaseReg,
         F.Scale, LU.AccessTy.AddrSpace);
     InstructionCost ScaleCostMaxOffset = TTI.getScalingFactorCost(
-        LU.AccessTy.MemTy, F.BaseGV, F.BaseOffset + LU.MaxOffset, F.HasBaseReg,
+        LU.AccessTy.MemTy, F.BaseGV,
+        AddressOffset::getFixed(F.BaseOffset + LU.MaxOffset), F.HasBaseReg,
         F.Scale, LU.AccessTy.AddrSpace);
 
     assert(ScaleCostMinOffset.isValid() && ScaleCostMaxOffset.isValid() &&
@@ -2506,16 +2509,16 @@ LSRInstance::OptimizeLoopTermCond() {
               MemAccessTy AccessTy = getAccessType(
                   TTI, UI->getUser(), UI->getOperandValToReplace());
               int64_t Scale = C->getSExtValue();
-              if (TTI.isLegalAddressingMode(AccessTy.MemTy, /*BaseGV=*/nullptr,
-                                            /*BaseOffset=*/0,
-                                            /*HasBaseReg=*/true, Scale,
-                                            AccessTy.AddrSpace))
+              if (TTI.isLegalAddressingMode(
+                      AccessTy.MemTy, /*BaseGV=*/nullptr,
+                      /*BaseOffset=*/AddressOffset::getFixed(0),
+                      /*HasBaseReg=*/true, Scale, AccessTy.AddrSpace))
                 goto decline_post_inc;
               Scale = -Scale;
-              if (TTI.isLegalAddressingMode(AccessTy.MemTy, /*BaseGV=*/nullptr,
-                                            /*BaseOffset=*/0,
-                                            /*HasBaseReg=*/true, Scale,
-                                            AccessTy.AddrSpace))
+              if (TTI.isLegalAddressingMode(
+                      AccessTy.MemTy, /*BaseGV=*/nullptr,
+                      /*BaseOffset=*/AddressOffset::getFixed(0),
+                      /*HasBaseReg=*/true, Scale, AccessTy.AddrSpace))
                 goto decline_post_inc;
             }
           }
@@ -5030,11 +5033,13 @@ static bool IsSimplerBaseSCEVForTarget(const TargetTransformInfo &TTI,
 
   return TTI.isLegalAddressingMode(
              AccessType.MemTy, /*BaseGV=*/nullptr,
-             /*BaseOffset=*/Diff->getAPInt().getSExtValue(),
+             /*BaseOffset=*/
+             AddressOffset::getFixed(Diff->getAPInt().getSExtValue()),
              /*HasBaseReg=*/true, /*Scale=*/0, AccessType.AddrSpace) &&
          !TTI.isLegalAddressingMode(
              AccessType.MemTy, /*BaseGV=*/nullptr,
-             /*BaseOffset=*/-Diff->getAPInt().getSExtValue(),
+             /*BaseOffset=*/
+             AddressOffset::getFixed(-Diff->getAPInt().getSExtValue()),
              /*HasBaseReg=*/true, /*Scale=*/0, AccessType.AddrSpace);
 }
 

@@ -400,7 +400,7 @@ bool TargetTransformInfo::isLegalICmpImmediate(int64_t Imm) const {
 }
 
 bool TargetTransformInfo::isLegalAddressingMode(Type *Ty, GlobalValue *BaseGV,
-                                                int64_t BaseOffset,
+                                                AddressOffset BaseOffset,
                                                 bool HasBaseReg, int64_t Scale,
                                                 unsigned AddrSpace,
                                                 Instruction *I) const {
@@ -523,7 +523,7 @@ bool TargetTransformInfo::prefersVectorizedAddressing() const {
 }
 
 InstructionCost TargetTransformInfo::getScalingFactorCost(
-    Type *Ty, GlobalValue *BaseGV, int64_t BaseOffset, bool HasBaseReg,
+    Type *Ty, GlobalValue *BaseGV, AddressOffset BaseOffset, bool HasBaseReg,
     int64_t Scale, unsigned AddrSpace) const {
   InstructionCost Cost = TTIImpl->getScalingFactorCost(
       Ty, BaseGV, BaseOffset, HasBaseReg, Scale, AddrSpace);

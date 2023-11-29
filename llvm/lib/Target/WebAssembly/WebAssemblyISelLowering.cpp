@@ -787,7 +787,7 @@ bool WebAssemblyTargetLowering::isLegalAddressingMode(const DataLayout &DL,
   // WebAssembly offsets are added as unsigned without wrapping. The
   // isLegalAddressingMode gives us no way to determine if wrapping could be
   // happening, so we approximate this by accepting only non-negative offsets.
-  if (AM.BaseOffs < 0)
+  if (AM.BaseOffs.isLessThanZero())
     return false;
 
   // WebAssembly has no scale register operands.

@@ -702,9 +702,12 @@ void ConstantHoistingPass::findBaseConstants(GlobalVariable *BaseGV) {
           TTI->isLegalAddImmediate(Diff.getSExtValue()) &&
           // Check if Diff can be used as offset in addressing mode of the user
           // memory instruction.
-          (!MemUseValTy || TTI->isLegalAddressingMode(MemUseValTy,
-           /*BaseGV*/nullptr, /*BaseOffset*/Diff.getSExtValue(),
-           /*HasBaseReg*/true, /*Scale*/0)))
+          (!MemUseValTy ||
+           TTI->isLegalAddressingMode(
+               MemUseValTy,
+               /*BaseGV*/ nullptr,
+               /*BaseOffset*/ AddressOffset::getFixed(Diff.getSExtValue()),
+               /*HasBaseReg*/ true, /*Scale*/ 0)))
         continue;
     }
     // We either have now a different constant type or the constant is not in

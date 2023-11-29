@@ -1064,7 +1064,7 @@ bool SystemZTargetLowering::isLegalAddressingMode(const DataLayout &DL,
     return false;
 
   // Require a 20-bit signed offset.
-  if (!isInt<20>(AM.BaseOffs))
+  if (!isInt<20>(AM.BaseOffs.getFixedValue()))
     return false;
 
   bool RequireD12 =
@@ -1073,7 +1073,7 @@ bool SystemZTargetLowering::isLegalAddressingMode(const DataLayout &DL,
   if (I != nullptr)
     SupportedAM = supportedAddressingMode(I, Subtarget.hasVector());
 
-  if (!SupportedAM.LongDisplacement && !isUInt<12>(AM.BaseOffs))
+  if (!SupportedAM.LongDisplacement && !isUInt<12>(AM.BaseOffs.getFixedValue()))
     return false;
 
   if (!SupportedAM.IndexReg)

@@ -4877,7 +4877,8 @@ bool LoongArchTargetLowering::isLegalAddressingMode(const DataLayout &DL,
     return false;
 
   // Require a 12 or 14 bit signed offset.
-  if (!isInt<12>(AM.BaseOffs) || !isShiftedInt<14, 2>(AM.BaseOffs))
+  if (!isInt<12>(AM.BaseOffs.getFixedValue()) ||
+      !isShiftedInt<14, 2>(AM.BaseOffs.getFixedValue()))
     return false;
 
   switch (AM.Scale) {
@@ -4889,7 +4890,7 @@ bool LoongArchTargetLowering::isLegalAddressingMode(const DataLayout &DL,
     break;
   case 1:
     // "r+r+i" is not allowed.
-    if (AM.HasBaseReg && AM.BaseOffs != 0)
+    if (AM.HasBaseReg && AM.BaseOffs.isNonZero())
       return false;
     // Otherwise we have "r+r" or "r+i".
     break;

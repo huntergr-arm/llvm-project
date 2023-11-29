@@ -1058,7 +1058,7 @@ bool AVRTargetLowering::isLegalAddressingMode(const DataLayout &DL,
                                               const AddrMode &AM, Type *Ty,
                                               unsigned AS,
                                               Instruction *I) const {
-  int64_t Offs = AM.BaseOffs;
+  int64_t Offs = AM.BaseOffs.getFixedValue();
 
   // Allow absolute addresses.
   if (AM.BaseGV && !AM.HasBaseReg && AM.Scale == 0 && Offs == 0) {

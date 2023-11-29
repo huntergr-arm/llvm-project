@@ -1759,7 +1759,7 @@ bool RISCVTargetLowering::isLegalAddressingMode(const DataLayout &DL,
     return AM.HasBaseReg && AM.Scale == 0 && !AM.BaseOffs;
 
   // Require a 12-bit signed offset.
-  if (!isInt<12>(AM.BaseOffs))
+  if (!isInt<12>(AM.BaseOffs.getFixedValue()))
     return false;
 
   switch (AM.Scale) {

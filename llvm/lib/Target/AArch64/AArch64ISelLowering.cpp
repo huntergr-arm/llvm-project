@@ -16389,8 +16389,8 @@ bool AArch64TargetLowering::isLegalAddressingMode(const DataLayout &DL,
       NumBytes = 0;
   }
 
-  return Subtarget->getInstrInfo()->isLegalAddressingMode(NumBytes, AM.BaseOffs,
-                                                          AM.Scale);
+  return Subtarget->getInstrInfo()->isLegalAddressingMode(
+      NumBytes, AM.BaseOffs.getFixedValue(), AM.Scale);
 }
 
 // Check whether the 2 offsets belong to the same imm24 range, and their high

@@ -218,12 +218,13 @@ public:
 
   bool isLegalICmpImmediate(int64_t Imm) const { return false; }
 
-  bool isLegalAddressingMode(Type *Ty, GlobalValue *BaseGV, int64_t BaseOffset,
-                             bool HasBaseReg, int64_t Scale, unsigned AddrSpace,
+  bool isLegalAddressingMode(Type *Ty, GlobalValue *BaseGV,
+                             AddressOffset BaseOffset, bool HasBaseReg,
+                             int64_t Scale, unsigned AddrSpace,
                              Instruction *I = nullptr) const {
     // Guess that only reg and reg+reg addressing is allowed. This heuristic is
     // taken from the implementation of LSR.
-    return !BaseGV && BaseOffset == 0 && (Scale == 0 || Scale == 1);
+    return !BaseGV && BaseOffset.isZero() && (Scale == 0 || Scale == 1);
   }
 
   bool isLSRCostLess(const TTI::LSRCost &C1, const TTI::LSRCost &C2) const {
@@ -319,8 +320,8 @@ public:
   bool prefersVectorizedAddressing() const { return true; }
 
   InstructionCost getScalingFactorCost(Type *Ty, GlobalValue *BaseGV,
-                                       int64_t BaseOffset, bool HasBaseReg,
-                                       int64_t Scale,
+                                       AddressOffset BaseOffset,
+                                       bool HasBaseReg, int64_t Scale,
                                        unsigned AddrSpace) const {
     // Guess that all legal addressing mode are free.
     if (isLegalAddressingMode(Ty, BaseGV, BaseOffset, HasBaseReg, Scale,
@@ -1097,8 +1098,8 @@ public:
     // access type, then we can fold it into its users.
     if (static_cast<T *>(this)->isLegalAddressingMode(
             AccessType, const_cast<GlobalValue *>(BaseGV),
-            BaseOffset.sextOrTrunc(64).getSExtValue(), HasBaseReg, Scale,
-            Ptr->getType()->getPointerAddressSpace()))
+            AddressOffset::getFixed(BaseOffset.sextOrTrunc(64).getSExtValue()),
+            HasBaseReg, Scale, Ptr->getType()->getPointerAddressSpace()))
       return TTI::TCC_Free;
 
     // TODO: Instead of returning TCC_Basic here, we should use

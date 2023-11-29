@@ -388,6 +388,52 @@ public:
   }
 };
 
+// An offset from an address that is either scalable or fixed. Used for
+// per-target optimizations of addressing modes.
+class AddressOffset
+    : public details::FixedOrScalableQuantity<AddressOffset, int64_t> {
+  constexpr AddressOffset(ScalarTy MinVal, bool Scalable)
+      : FixedOrScalableQuantity(MinVal, Scalable) {}
+
+  constexpr AddressOffset(
+      const FixedOrScalableQuantity<AddressOffset, int64_t> &V)
+      : FixedOrScalableQuantity(V) {}
+
+public:
+  constexpr AddressOffset() : FixedOrScalableQuantity() {}
+
+  static constexpr AddressOffset getFixed(ScalarTy MinVal) {
+    return AddressOffset(MinVal, false);
+  }
+  static constexpr AddressOffset getScalable(ScalarTy MinVal) {
+    return AddressOffset(MinVal, true);
+  }
+  static constexpr AddressOffset get(ScalarTy MinVal, bool Scalable) {
+    return AddressOffset(MinVal, Scalable);
+  }
+
+  constexpr bool isLessThanZero() const { return Quantity < 0; }
+
+  constexpr bool isGreaterThanZero() const { return Quantity > 0; }
+
+  // TODO: Remove these and insist on AddressOffsets for both sides?
+  // Or maybe we can have user-defined literals? e.g. 8_sc or 16_fx?
+  // Maybe a short suffix isn't obvious enough...
+  friend constexpr AddressOffset &operator+=(AddressOffset &LHS,
+                                             const int64_t RHS) {
+    assert(!LHS.Scalable && "Incompatible types");
+    LHS.Quantity += RHS;
+    return LHS;
+  }
+
+  friend constexpr AddressOffset &operator-=(AddressOffset &LHS,
+                                             const int64_t RHS) {
+    assert(!LHS.Scalable && "Incompatible types");
+    LHS.Quantity -= RHS;
+    return LHS;
+  }
+};
+
 //===----------------------------------------------------------------------===//
 // Utilities
 //===----------------------------------------------------------------------===//

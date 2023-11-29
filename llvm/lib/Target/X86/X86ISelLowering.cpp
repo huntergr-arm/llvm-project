@@ -33664,7 +33664,8 @@ bool X86TargetLowering::isLegalAddressingMode(const DataLayout &DL,
   CodeModel::Model M = getTargetMachine().getCodeModel();
 
   // X86 allows a sign-extended 32-bit immediate field as a displacement.
-  if (!X86::isOffsetSuitableForCodeModel(AM.BaseOffs, M, AM.BaseGV != nullptr))
+  if (!X86::isOffsetSuitableForCodeModel(AM.BaseOffs.getFixedValue(), M,
+                                         AM.BaseGV != nullptr))
     return false;
 
   if (AM.BaseGV) {

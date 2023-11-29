@@ -970,7 +970,8 @@ static bool canFoldInAddressingMode(GLoadStore *MI, const TargetLowering &TLI,
 
   AM.HasBaseReg = true;
   if (auto CstOff = getIConstantVRegVal(Addr->getOffsetReg(), MRI))
-    AM.BaseOffs = CstOff->getSExtValue(); // [reg +/- imm]
+    AM.BaseOffs =
+        AddressOffset::getFixed(CstOff->getSExtValue()); // [reg +/- imm]
   else
     AM.Scale = 1; // [reg +/- reg]
 
@@ -1603,11 +1604,11 @@ bool CombinerHelper::matchPtrAddImmedChain(MachineInstr &MI,
   }
   TargetLoweringBase::AddrMode AMNew;
   APInt CombinedImm = MaybeImmVal->Value + MaybeImm2Val->Value;
-  AMNew.BaseOffs = CombinedImm.getSExtValue();
+  AMNew.BaseOffs = AddressOffset::getFixed(CombinedImm.getSExtValue());
   if (AccessTy) {
     AMNew.HasBaseReg = true;
     TargetLoweringBase::AddrMode AMOld;
-    AMOld.BaseOffs = MaybeImmVal->Value.getSExtValue();
+    AMOld.BaseOffs = AddressOffset::getFixed(MaybeImmVal->Value.getSExtValue());
     AMOld.HasBaseReg = true;
     unsigned AS = MRI.getType(Add2).getAddressSpace();
     const auto &TLI = *MF.getSubtarget().getTargetLowering();
@@ -1628,7 +1629,7 @@ void CombinerHelper::applyPtrAddImmedChain(MachineInstr &MI,
   assert(MI.getOpcode() == TargetOpcode::G_PTR_ADD && "Expected G_PTR_ADD");
   MachineIRBuilder MIB(MI);
   LLT OffsetTy = MRI.getType(MI.getOperand(2).getReg());
-  auto NewOffset = MIB.buildConstant(OffsetTy, MatchInfo.Imm);
+  auto NewOffset = MIB.buildConstant(OffsetTy, MatchInfo.Imm.getFixedValue());
   setRegBank(NewOffset.getReg(0), MatchInfo.Bank);
   Observer.changingInstr(MI);
   MI.getOperand(1).setReg(MatchInfo.Base);
@@ -4559,7 +4560,7 @@ bool CombinerHelper::reassociationCanBreakAddressingModePattern(
     // that's the one we hope to fold into the load or store).
     TargetLoweringBase::AddrMode AM;
     AM.HasBaseReg = true;
-    AM.BaseOffs = C2APIntVal.getSExtValue();
+    AM.BaseOffs = AddressOffset::getFixed(C2APIntVal.getSExtValue());
     unsigned AS = MRI.getType(LdStMI->getPointerReg()).getAddressSpace();
     Type *AccessTy = getTypeForLLT(LdStMI->getMMO().getMemoryType(),
                                    PtrAdd.getMF()->getFunction().getContext());
@@ -4569,7 +4570,7 @@ bool CombinerHelper::reassociationCanBreakAddressingModePattern(
       continue;
 
     // Would x[offset1+offset2] still be a legal addressing mode?
-    AM.BaseOffs = CombinedValue;
+    AM.BaseOffs = AddressOffset::getFixed(CombinedValue);
     if (!TLI.isLegalAddressingMode(PtrAdd.getMF()->getDataLayout(), AM,
                                    AccessTy, AS))
       return true;

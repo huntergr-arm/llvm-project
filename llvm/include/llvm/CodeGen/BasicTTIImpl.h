@@ -332,9 +332,10 @@ public:
     return getTLI()->isLegalICmpImmediate(imm);
   }
 
-  bool isLegalAddressingMode(Type *Ty, GlobalValue *BaseGV, int64_t BaseOffset,
-                             bool HasBaseReg, int64_t Scale,
-                             unsigned AddrSpace, Instruction *I = nullptr) {
+  bool isLegalAddressingMode(Type *Ty, GlobalValue *BaseGV,
+                             AddressOffset BaseOffset, bool HasBaseReg,
+                             int64_t Scale, unsigned AddrSpace,
+                             Instruction *I = nullptr) {
     TargetLoweringBase::AddrMode AM;
     AM.BaseGV = BaseGV;
     AM.BaseOffs = BaseOffset;
@@ -397,8 +398,9 @@ public:
   }
 
   InstructionCost getScalingFactorCost(Type *Ty, GlobalValue *BaseGV,
-                                       int64_t BaseOffset, bool HasBaseReg,
-                                       int64_t Scale, unsigned AddrSpace) {
+                                       AddressOffset BaseOffset,
+                                       bool HasBaseReg, int64_t Scale,
+                                       unsigned AddrSpace) {
     TargetLoweringBase::AddrMode AM;
     AM.BaseGV = BaseGV;
     AM.BaseOffs = BaseOffset;

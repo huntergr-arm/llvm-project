@@ -1060,10 +1060,10 @@ bool SeparateConstOffsetFromGEP::splitGEP(GetElementPtrInst *GEP) {
   // case.
   if (!LowerGEP) {
     unsigned AddrSpace = GEP->getPointerAddressSpace();
-    if (!TTI.isLegalAddressingMode(GEP->getResultElementType(),
-                                   /*BaseGV=*/nullptr, AccumulativeByteOffset,
-                                   /*HasBaseReg=*/true, /*Scale=*/0,
-                                   AddrSpace)) {
+    if (!TTI.isLegalAddressingMode(
+            GEP->getResultElementType(),
+            /*BaseGV=*/nullptr, AddressOffset::getFixed(AccumulativeByteOffset),
+            /*HasBaseReg=*/true, /*Scale=*/0, AddrSpace)) {
       return Changed;
     }
   }

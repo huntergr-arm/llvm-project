@@ -1238,7 +1238,7 @@ bool DAGCombiner::reassociationCanBreakAddressingModePattern(unsigned Opc,
         // that's the one we hope to fold into the load or store).
         TargetLoweringBase::AddrMode AM;
         AM.HasBaseReg = true;
-        AM.BaseOffs = C2APIntVal.getSExtValue();
+        AM.BaseOffs = AddressOffset::getFixed(C2APIntVal.getSExtValue());
         EVT VT = LoadStore->getMemoryVT();
         unsigned AS = LoadStore->getAddressSpace();
         Type *AccessTy = VT.getTypeForEVT(*DAG.getContext());
@@ -1246,7 +1246,7 @@ bool DAGCombiner::reassociationCanBreakAddressingModePattern(unsigned Opc,
           continue;
 
         // Would x[offset1+offset2] still be a legal addressing mode?
-        AM.BaseOffs = CombinedValue;
+        AM.BaseOffs = AddressOffset::getFixed(CombinedValue);
         if (!TLI.isLegalAddressingMode(DAG.getDataLayout(), AM, AccessTy, AS))
           return true;
       }
@@ -1265,7 +1265,7 @@ bool DAGCombiner::reassociationCanBreakAddressingModePattern(unsigned Opc,
       // reassociating the constants breaks address pattern
       TargetLoweringBase::AddrMode AM;
       AM.HasBaseReg = true;
-      AM.BaseOffs = C2APIntVal.getSExtValue();
+      AM.BaseOffs = AddressOffset::getFixed(C2APIntVal.getSExtValue());
       EVT VT = LoadStore->getMemoryVT();
       unsigned AS = LoadStore->getAddressSpace();
       Type *AccessTy = VT.getTypeForEVT(*DAG.getContext());
@@ -2450,7 +2450,7 @@ static bool canFoldInAddressingMode(SDNode *N, SDNode *Use, SelectionDAG &DAG,
     ConstantSDNode *Offset = dyn_cast<ConstantSDNode>(N->getOperand(1));
     if (Offset)
       // [reg +/- imm]
-      AM.BaseOffs = Offset->getSExtValue();
+      AM.BaseOffs = AddressOffset::getFixed(Offset->getSExtValue());
     else
       // [reg +/- reg]
       AM.Scale = 1;
@@ -2459,7 +2459,7 @@ static bool canFoldInAddressingMode(SDNode *N, SDNode *Use, SelectionDAG &DAG,
     ConstantSDNode *Offset = dyn_cast<ConstantSDNode>(N->getOperand(1));
     if (Offset)
       // [reg +/- imm]
-      AM.BaseOffs = -Offset->getSExtValue();
+      AM.BaseOffs = AddressOffset::getFixed(-Offset->getSExtValue());
     else
       // [reg +/- reg]
       AM.Scale = 1;

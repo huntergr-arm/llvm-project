@@ -1450,12 +1450,12 @@ InstructionCost RISCVTTIImpl::getPointersChainCost(
       // it.
       unsigned Stride = DL.getTypeStoreSize(AccessTy);
       if (Info.isUnitStride() &&
-          isLegalAddressingMode(AccessTy,
-                                /* BaseGV */ nullptr,
-                                /* BaseOffset */ Stride * I,
-                                /* HasBaseReg */ true,
-                                /* Scale */ 0,
-                                GEP->getType()->getPointerAddressSpace()))
+          isLegalAddressingMode(
+              AccessTy,
+              /* BaseGV */ nullptr,
+              /* BaseOffset */ AddressOffset::getFixed(Stride * I),
+              /* HasBaseReg */ true,
+              /* Scale */ 0, GEP->getType()->getPointerAddressSpace()))
         continue;
       Cost += getArithmeticInstrCost(Instruction::Add, GEP->getType(), CostKind,
                                      {TTI::OK_AnyValue, TTI::OP_None},

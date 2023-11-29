@@ -15,7 +15,7 @@ namespace {
 struct AddrMode : public TargetLowering::AddrMode {
   constexpr AddrMode(GlobalValue *GV, int64_t Offs, bool HasBase, int64_t S) {
     BaseGV = GV;
-    BaseOffs = Offs;
+    BaseOffs = AddressOffset::getFixed(Offs);
     HasBaseReg = HasBase;
     Scale = S;
   }

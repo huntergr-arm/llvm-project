@@ -2808,7 +2808,7 @@ struct ExtAddrMode : public TargetLowering::AddrMode {
     case ScaledRegField:
       return ScaledReg;
     case BaseOffsField:
-      return ConstantInt::get(IntPtrTy, BaseOffs);
+      return ConstantInt::get(IntPtrTy, BaseOffs.getFixedValue());
     }
   }
 
@@ -2845,7 +2845,7 @@ struct ExtAddrMode : public TargetLowering::AddrMode {
       assert(ScaledReg == nullptr);
       ScaledReg = V;
       Scale = 1;
-      BaseOffs = 0;
+      BaseOffs = AddressOffset::getFixed(0);
       break;
     }
   }
@@ -5647,7 +5647,8 @@ bool CodeGenPrepare::optimizeMemoryInst(Instruction *MemoryInst, Value *Addr,
 
       // Add in the Base Offset if present.
       if (AddrMode.BaseOffs) {
-        Value *V = ConstantInt::get(IntPtrTy, AddrMode.BaseOffs);
+        Value *V =
+            ConstantInt::get(IntPtrTy, AddrMode.BaseOffs.getFixedValue());
         if (ResultIndex) {
           // We need to add this separately from the scale above to help with
           // SDAG consecutive load/store merging.
@@ -5759,7 +5760,7 @@ bool CodeGenPrepare::optimizeMemoryInst(Instruction *MemoryInst, Value *Addr,
 
     // Add in the Base Offset if present.
     if (AddrMode.BaseOffs) {
-      Value *V = ConstantInt::get(IntPtrTy, AddrMode.BaseOffs);
+      Value *V = ConstantInt::get(IntPtrTy, AddrMode.BaseOffs.getFixedValue());
       if (Result)
         Result = Builder.CreateAdd(Result, V, "sunkaddr");
       else
@@ -6277,7 +6278,7 @@ bool CodeGenPrepare::splitLargeGEPOffsets() {
       if (Offset != BaseOffset) {
         TargetLowering::AddrMode AddrMode;
         AddrMode.HasBaseReg = true;
-        AddrMode.BaseOffs = Offset - BaseOffset;
+        AddrMode.BaseOffs = AddressOffset::getFixed(Offset - BaseOffset);
         // The result type of the GEP might not be the type of the memory
         // access.
         if (!TLI->isLegalAddressingMode(*DL, AddrMode,

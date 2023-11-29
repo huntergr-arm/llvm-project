@@ -62,7 +62,7 @@ struct IndexedLoadStoreMatchInfo {
 };
 
 struct PtrAddChain {
-  int64_t Imm;
+  AddressOffset Imm;
   Register Base;
   const RegisterBank *Bank;
 };

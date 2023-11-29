@@ -2009,7 +2009,8 @@ bool TargetLoweringBase::isLegalAddressingMode(const DataLayout &DL,
   // r+i addr mode.
 
   // Allows a sign-extended 16-bit immediate field.
-  if (AM.BaseOffs <= -(1LL << 16) || AM.BaseOffs >= (1LL << 16)-1)
+  if (AM.BaseOffs.getFixedValue() <= -(1LL << 16) ||
+      AM.BaseOffs.getFixedValue() >= (1LL << 16) - 1)
     return false;
 
   // No global is ever allowed as a base.

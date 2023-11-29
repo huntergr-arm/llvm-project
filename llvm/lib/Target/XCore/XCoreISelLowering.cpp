@@ -1788,37 +1788,38 @@ bool XCoreTargetLowering::isLegalAddressingMode(const DataLayout &DL,
                                                 unsigned AS,
                                                 Instruction *I) const {
   if (Ty->getTypeID() == Type::VoidTyID)
-    return AM.Scale == 0 && isImmUs(AM.BaseOffs) && isImmUs4(AM.BaseOffs);
+    return AM.Scale == 0 && isImmUs(AM.BaseOffs.getFixedValue()) &&
+           isImmUs4(AM.BaseOffs.getFixedValue());
 
   unsigned Size = DL.getTypeAllocSize(Ty);
   if (AM.BaseGV) {
     return Size >= 4 && !AM.HasBaseReg && AM.Scale == 0 &&
-                 AM.BaseOffs%4 == 0;
+           AM.BaseOffs.getFixedValue() % 4 == 0;
   }
 
   switch (Size) {
   case 1:
     // reg + imm
     if (AM.Scale == 0) {
-      return isImmUs(AM.BaseOffs);
+      return isImmUs(AM.BaseOffs.getFixedValue());
     }
     // reg + reg
-    return AM.Scale == 1 && AM.BaseOffs == 0;
+    return AM.Scale == 1 && AM.BaseOffs.isZero();
   case 2:
   case 3:
     // reg + imm
     if (AM.Scale == 0) {
-      return isImmUs2(AM.BaseOffs);
+      return isImmUs2(AM.BaseOffs.getFixedValue());
     }
     // reg + reg<<1
-    return AM.Scale == 2 && AM.BaseOffs == 0;
+    return AM.Scale == 2 && AM.BaseOffs.isZero();
   default:
     // reg + imm
     if (AM.Scale == 0) {
-      return isImmUs4(AM.BaseOffs);
+      return isImmUs4(AM.BaseOffs.getFixedValue());
     }
     // reg + reg<<2
-    return AM.Scale == 4 && AM.BaseOffs == 0;
+    return AM.Scale == 4 && AM.BaseOffs.isZero();
   }
 }
 

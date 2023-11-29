@@ -2693,7 +2693,7 @@ public:
   /// no scale.
   struct AddrMode {
     GlobalValue *BaseGV = nullptr;
-    int64_t      BaseOffs = 0;
+    AddressOffset BaseOffs = AddressOffset::getFixed(0);
     bool         HasBaseReg = false;
     int64_t      Scale = 0;
     AddrMode() = default;

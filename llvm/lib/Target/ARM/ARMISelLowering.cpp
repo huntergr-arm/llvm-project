@@ -19646,7 +19646,7 @@ bool ARMTargetLowering::isLegalAddressingMode(const DataLayout &DL,
                                               const AddrMode &AM, Type *Ty,
                                               unsigned AS, Instruction *I) const {
   EVT VT = getValueType(DL, Ty, true);
-  if (!isLegalAddressImmediate(AM.BaseOffs, VT, Subtarget))
+  if (!isLegalAddressImmediate(AM.BaseOffs.getFixedValue(), VT, Subtarget))
     return false;
 
   // Can never fold addr of global into load/store.

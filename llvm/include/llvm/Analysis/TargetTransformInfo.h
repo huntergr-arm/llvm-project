@@ -708,9 +708,9 @@ public:
   /// mode is legal for a load/store of any legal type.
   /// If target returns true in LSRWithInstrQueries(), I may be valid.
   /// TODO: Handle pre/postinc as well.
-  bool isLegalAddressingMode(Type *Ty, GlobalValue *BaseGV, int64_t BaseOffset,
-                             bool HasBaseReg, int64_t Scale,
-                             unsigned AddrSpace = 0,
+  bool isLegalAddressingMode(Type *Ty, GlobalValue *BaseGV,
+                             AddressOffset BaseOffset, bool HasBaseReg,
+                             int64_t Scale, unsigned AddrSpace = 0,
                              Instruction *I = nullptr) const;
 
   /// Return true if LSR cost of C1 is lower than C2.
@@ -821,8 +821,8 @@ public:
   /// If the AM is not supported, it returns a negative value.
   /// TODO: Handle pre/postinc as well.
   InstructionCost getScalingFactorCost(Type *Ty, GlobalValue *BaseGV,
-                                       int64_t BaseOffset, bool HasBaseReg,
-                                       int64_t Scale,
+                                       AddressOffset BaseOffset,
+                                       bool HasBaseReg, int64_t Scale,
                                        unsigned AddrSpace = 0) const;
 
   /// Return true if the loop strength reduce pass should make
@@ -1837,7 +1837,7 @@ public:
   virtual bool isLegalAddImmediate(int64_t Imm) = 0;
   virtual bool isLegalICmpImmediate(int64_t Imm) = 0;
   virtual bool isLegalAddressingMode(Type *Ty, GlobalValue *BaseGV,
-                                     int64_t BaseOffset, bool HasBaseReg,
+                                     AddressOffset BaseOffset, bool HasBaseReg,
                                      int64_t Scale, unsigned AddrSpace,
                                      Instruction *I) = 0;
   virtual bool isLSRCostLess(const TargetTransformInfo::LSRCost &C1,
@@ -1874,7 +1874,7 @@ public:
   virtual bool hasVolatileVariant(Instruction *I, unsigned AddrSpace) = 0;
   virtual bool prefersVectorizedAddressing() = 0;
   virtual InstructionCost getScalingFactorCost(Type *Ty, GlobalValue *BaseGV,
-                                               int64_t BaseOffset,
+                                               AddressOffset BaseOffset,
                                                bool HasBaseReg, int64_t Scale,
                                                unsigned AddrSpace) = 0;
   virtual bool LSRWithInstrQueries() = 0;
@@ -2298,8 +2298,9 @@ public:
   bool isLegalICmpImmediate(int64_t Imm) override {
     return Impl.isLegalICmpImmediate(Imm);
   }
-  bool isLegalAddressingMode(Type *Ty, GlobalValue *BaseGV, int64_t BaseOffset,
-                             bool HasBaseReg, int64_t Scale, unsigned AddrSpace,
+  bool isLegalAddressingMode(Type *Ty, GlobalValue *BaseGV,
+                             AddressOffset BaseOffset, bool HasBaseReg,
+                             int64_t Scale, unsigned AddrSpace,
                              Instruction *I) override {
     return Impl.isLegalAddressingMode(Ty, BaseGV, BaseOffset, HasBaseReg, Scale,
                                       AddrSpace, I);
@@ -2384,8 +2385,8 @@ public:
     return Impl.prefersVectorizedAddressing();
   }
   InstructionCost getScalingFactorCost(Type *Ty, GlobalValue *BaseGV,
-                                       int64_t BaseOffset, bool HasBaseReg,
-                                       int64_t Scale,
+                                       AddressOffset BaseOffset,
+                                       bool HasBaseReg, int64_t Scale,
                                        unsigned AddrSpace) override {
     return Impl.getScalingFactorCost(Ty, BaseGV, BaseOffset, HasBaseReg, Scale,
                                      AddrSpace);
