@@ -16370,14 +16370,27 @@ bool AArch64TargetLowering::isLegalAddressingMode(const DataLayout &DL,
 
   if (Ty->isScalableTy()) {
     if (isa<ScalableVectorType>(Ty)) {
+      uint64_t VecNumBytes = DL.getTypeSizeInBits(Ty).getKnownMinValue() / 8;
+      // See if we have a foldable vscale-based offset
+      if (AM.HasBaseReg &&  AM.BaseOffs.isNonZero() && AM.BaseOffs.isScalable()
+          && !AM.Scale &&
+          (AM.BaseOffs.getKnownMinValue() % 16 == 0) && VecNumBytes == 16) {
+        int64_t Idx = AM.BaseOffs.getKnownMinValue() / (int64_t)VecNumBytes;
+        if (Idx >= -8 && Idx <= 7)
+          return true;
+      }
       uint64_t VecElemNumBytes =
-          DL.getTypeSizeInBits(cast<VectorType>(Ty)->getElementType()) / 8;
+               DL.getTypeSizeInBits(cast<VectorType>(Ty)->getElementType()) / 8;
       return AM.HasBaseReg && !AM.BaseOffs &&
              (AM.Scale == 0 || (uint64_t)AM.Scale == VecElemNumBytes);
     }
 
     return AM.HasBaseReg && !AM.BaseOffs && !AM.Scale;
   }
+
+  // Can't fold scalable offsets for non-scalable types.
+  if (AM.BaseOffs.isNonZero() && AM.BaseOffs.isScalable())
+    return false;
 
   // check reg + imm case:
   // i.e., reg + 0, reg + imm9, reg + SIZE_IN_BYTES * uimm12
