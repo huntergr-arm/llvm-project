@@ -251,7 +251,7 @@ public:
   /// If the AM is supported, the return value must be >= 0.
   /// If the AM is not supported, it returns a negative value.
   InstructionCost getScalingFactorCost(Type *Ty, GlobalValue *BaseGV,
-                                       AddressOffset BaseOffset,
+                                       TargetImmediate BaseOffset,
                                        bool HasBaseReg, int64_t Scale,
                                        unsigned AddrSpace) const;
 

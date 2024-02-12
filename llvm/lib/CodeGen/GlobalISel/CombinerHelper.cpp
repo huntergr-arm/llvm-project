@@ -971,7 +971,7 @@ static bool canFoldInAddressingMode(GLoadStore *MI, const TargetLowering &TLI,
   AM.HasBaseReg = true;
   if (auto CstOff = getIConstantVRegVal(Addr->getOffsetReg(), MRI))
     AM.BaseOffs =
-        AddressOffset::getFixed(CstOff->getSExtValue()); // [reg +/- imm]
+        TargetImmediate::getFixed(CstOff->getSExtValue()); // [reg +/- imm]
   else
     AM.Scale = 1; // [reg +/- reg]
 
@@ -1604,11 +1604,11 @@ bool CombinerHelper::matchPtrAddImmedChain(MachineInstr &MI,
   }
   TargetLoweringBase::AddrMode AMNew;
   APInt CombinedImm = MaybeImmVal->Value + MaybeImm2Val->Value;
-  AMNew.BaseOffs = AddressOffset::getFixed(CombinedImm.getSExtValue());
+  AMNew.BaseOffs = TargetImmediate::getFixed(CombinedImm.getSExtValue());
   if (AccessTy) {
     AMNew.HasBaseReg = true;
     TargetLoweringBase::AddrMode AMOld;
-    AMOld.BaseOffs = AddressOffset::getFixed(MaybeImmVal->Value.getSExtValue());
+    AMOld.BaseOffs = TargetImmediate::getFixed(MaybeImmVal->Value.getSExtValue());
     AMOld.HasBaseReg = true;
     unsigned AS = MRI.getType(Add2).getAddressSpace();
     const auto &TLI = *MF.getSubtarget().getTargetLowering();
@@ -4560,7 +4560,7 @@ bool CombinerHelper::reassociationCanBreakAddressingModePattern(
     // that's the one we hope to fold into the load or store).
     TargetLoweringBase::AddrMode AM;
     AM.HasBaseReg = true;
-    AM.BaseOffs = AddressOffset::getFixed(C2APIntVal.getSExtValue());
+    AM.BaseOffs = TargetImmediate::getFixed(C2APIntVal.getSExtValue());
     unsigned AS = MRI.getType(LdStMI->getPointerReg()).getAddressSpace();
     Type *AccessTy = getTypeForLLT(LdStMI->getMMO().getMemoryType(),
                                    PtrAdd.getMF()->getFunction().getContext());
@@ -4570,7 +4570,7 @@ bool CombinerHelper::reassociationCanBreakAddressingModePattern(
       continue;
 
     // Would x[offset1+offset2] still be a legal addressing mode?
-    AM.BaseOffs = AddressOffset::getFixed(CombinedValue);
+    AM.BaseOffs = TargetImmediate::getFixed(CombinedValue);
     if (!TLI.isLegalAddressingMode(PtrAdd.getMF()->getDataLayout(), AM,
                                    AccessTy, AS))
       return true;

@@ -2693,7 +2693,7 @@ public:
   /// no scale.
   struct AddrMode {
     GlobalValue *BaseGV = nullptr;
-    AddressOffset BaseOffs = AddressOffset::getFixed(0);
+    TargetImmediate BaseOffs = TargetImmediate::getFixed(0);
     bool         HasBaseReg = false;
     int64_t      Scale = 0;
     AddrMode() = default;
@@ -2729,7 +2729,7 @@ public:
   /// Return true if the specified immediate is legal add immediate, that is the
   /// target has add instructions which can add a register with the immediate
   /// without having to materialize the immediate into a register.
-  virtual bool isLegalAddImmediate(int64_t) const {
+  virtual bool isLegalAddImmediate(TargetImmediate) const {
     return true;
   }
 

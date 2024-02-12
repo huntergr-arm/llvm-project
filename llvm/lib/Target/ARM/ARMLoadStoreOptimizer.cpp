@@ -529,7 +529,8 @@ void ARMLoadStoreOpt::UpdateBaseRegUses(MachineBasicBlock &MBB,
         Offset = (Opc == ARM::tSUBi8) ?
           MO.getImm() + WordOffset * 4 :
           MO.getImm() - WordOffset * 4 ;
-        if (Offset >= 0 && TL->isLegalAddImmediate(Offset)) {
+        if (Offset >= 0 &&
+            TL->isLegalAddImmediate(TargetImmediate::getFixed(Offset))) {
           // FIXME: Swap ADDS<->SUBS if Offset < 0, erase instruction if
           // Offset == 0.
           MO.setImm(Offset);
@@ -719,7 +720,7 @@ MachineInstr *ARMLoadStoreOpt::CreateLoadStoreMulti(
                                : isThumb1 ? ARM::tSUBi8 : ARM::SUBri;
     }
 
-    if (!TL->isLegalAddImmediate(Offset))
+    if (!TL->isLegalAddImmediate(TargetImmediate::getFixed(Offset)))
       // FIXME: Try add with register operand?
       return nullptr; // Probably not worth it then.
 

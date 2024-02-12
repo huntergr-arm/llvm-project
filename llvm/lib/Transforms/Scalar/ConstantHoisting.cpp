@@ -699,14 +699,14 @@ void ConstantHoistingPass::findBaseConstants(GlobalVariable *BaseGV) {
       // Check if the constant is in range of an add with immediate.
       APInt Diff = CC->ConstInt->getValue() - MinValItr->ConstInt->getValue();
       if ((Diff.getBitWidth() <= 64) &&
-          TTI->isLegalAddImmediate(Diff.getSExtValue()) &&
+          TTI->isLegalAddImmediate(TargetImmediate::getFixed(Diff.getSExtValue())) &&
           // Check if Diff can be used as offset in addressing mode of the user
           // memory instruction.
           (!MemUseValTy ||
            TTI->isLegalAddressingMode(
                MemUseValTy,
                /*BaseGV*/ nullptr,
-               /*BaseOffset*/ AddressOffset::getFixed(Diff.getSExtValue()),
+               /*BaseOffset*/ TargetImmediate::getFixed(Diff.getSExtValue()),
                /*HasBaseReg*/ true, /*Scale*/ 0)))
         continue;
     }

@@ -530,7 +530,7 @@ bool AArch64PostLegalizerCombiner::tryOptimizeConsecStores(
   // Size savings will depend on whether we can fold the offset, as an
   // immediate of an ADD.
   auto &TLI = *MIB.getMF().getSubtarget().getTargetLowering();
-  if (!TLI.isLegalAddImmediate(BaseOffset))
+  if (!TLI.isLegalAddImmediate(TargetImmediate::getFixed(BaseOffset)))
     TotalInstsExpected++;
   int SavingsExpected = Stores.size() - TotalInstsExpected;
   if (SavingsExpected <= 0)

@@ -694,7 +694,7 @@ public:
   /// Return true if the specified immediate is legal add immediate, that
   /// is the target has add instructions which can add a register with the
   /// immediate without having to materialize the immediate into a register.
-  bool isLegalAddImmediate(int64_t Imm) const;
+  bool isLegalAddImmediate(TargetImmediate Imm) const;
 
   /// Return true if the specified immediate is legal icmp immediate,
   /// that is the target has icmp instructions which can compare a register
@@ -709,7 +709,7 @@ public:
   /// If target returns true in LSRWithInstrQueries(), I may be valid.
   /// TODO: Handle pre/postinc as well.
   bool isLegalAddressingMode(Type *Ty, GlobalValue *BaseGV,
-                             AddressOffset BaseOffset, bool HasBaseReg,
+                             TargetImmediate BaseOffset, bool HasBaseReg,
                              int64_t Scale, unsigned AddrSpace = 0,
                              Instruction *I = nullptr) const;
 
@@ -821,7 +821,7 @@ public:
   /// If the AM is not supported, it returns a negative value.
   /// TODO: Handle pre/postinc as well.
   InstructionCost getScalingFactorCost(Type *Ty, GlobalValue *BaseGV,
-                                       AddressOffset BaseOffset,
+                                       TargetImmediate BaseOffset,
                                        bool HasBaseReg, int64_t Scale,
                                        unsigned AddrSpace = 0) const;
 
@@ -1834,10 +1834,10 @@ public:
       APInt &UndefElts, APInt &UndefElts2, APInt &UndefElts3,
       std::function<void(Instruction *, unsigned, APInt, APInt &)>
           SimplifyAndSetOp) = 0;
-  virtual bool isLegalAddImmediate(int64_t Imm) = 0;
+  virtual bool isLegalAddImmediate(TargetImmediate Imm) = 0;
   virtual bool isLegalICmpImmediate(int64_t Imm) = 0;
   virtual bool isLegalAddressingMode(Type *Ty, GlobalValue *BaseGV,
-                                     AddressOffset BaseOffset, bool HasBaseReg,
+                                     TargetImmediate BaseOffset, bool HasBaseReg,
                                      int64_t Scale, unsigned AddrSpace,
                                      Instruction *I) = 0;
   virtual bool isLSRCostLess(const TargetTransformInfo::LSRCost &C1,
@@ -1874,7 +1874,7 @@ public:
   virtual bool hasVolatileVariant(Instruction *I, unsigned AddrSpace) = 0;
   virtual bool prefersVectorizedAddressing() = 0;
   virtual InstructionCost getScalingFactorCost(Type *Ty, GlobalValue *BaseGV,
-                                               AddressOffset BaseOffset,
+                                               TargetImmediate BaseOffset,
                                                bool HasBaseReg, int64_t Scale,
                                                unsigned AddrSpace) = 0;
   virtual bool LSRWithInstrQueries() = 0;
@@ -2292,14 +2292,14 @@ public:
         IC, II, DemandedElts, UndefElts, UndefElts2, UndefElts3,
         SimplifyAndSetOp);
   }
-  bool isLegalAddImmediate(int64_t Imm) override {
+  bool isLegalAddImmediate(TargetImmediate Imm) override {
     return Impl.isLegalAddImmediate(Imm);
   }
   bool isLegalICmpImmediate(int64_t Imm) override {
     return Impl.isLegalICmpImmediate(Imm);
   }
   bool isLegalAddressingMode(Type *Ty, GlobalValue *BaseGV,
-                             AddressOffset BaseOffset, bool HasBaseReg,
+                             TargetImmediate BaseOffset, bool HasBaseReg,
                              int64_t Scale, unsigned AddrSpace,
                              Instruction *I) override {
     return Impl.isLegalAddressingMode(Ty, BaseGV, BaseOffset, HasBaseReg, Scale,
@@ -2385,7 +2385,7 @@ public:
     return Impl.prefersVectorizedAddressing();
   }
   InstructionCost getScalingFactorCost(Type *Ty, GlobalValue *BaseGV,
-                                       AddressOffset BaseOffset,
+                                       TargetImmediate BaseOffset,
                                        bool HasBaseReg, int64_t Scale,
                                        unsigned AddrSpace) override {
     return Impl.getScalingFactorCost(Ty, BaseGV, BaseOffset, HasBaseReg, Scale,

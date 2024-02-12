@@ -1578,7 +1578,7 @@ bool SITargetLowering::isLegalAddressingMode(const DataLayout &DL,
         return false;
     } else {
       // On GFX12, all offsets are signed 24-bit in bytes.
-      if (!isInt<24>(AM.BaseOffs))
+      if (!isInt<24>(AM.BaseOffs.getFixedValue()))
         return false;
     }
 
@@ -11169,7 +11169,7 @@ SDValue SITargetLowering::performSHLPtrCombine(SDNode *N,
 
   AddrMode AM;
   AM.HasBaseReg = true;
-  AM.BaseOffs = AddressOffset::getFixed(Offset.getSExtValue());
+  AM.BaseOffs = TargetImmediate::getFixed(Offset.getSExtValue());
   if (!isLegalAddressingMode(DCI.DAG.getDataLayout(), AM, Ty, AddrSpace))
     return SDValue();
 

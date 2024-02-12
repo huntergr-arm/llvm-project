@@ -1679,7 +1679,7 @@ static bool isAMCompletelyFolded(const TargetTransformInfo &TTI,
   switch (Kind) {
   case LSRUse::Address:
     return TTI.isLegalAddressingMode(
-        AccessTy.MemTy, BaseGV, AddressOffset::getFixed(BaseOffset), HasBaseReg,
+        AccessTy.MemTy, BaseGV, TargetImmediate::getFixed(BaseOffset), HasBaseReg,
         Scale, AccessTy.AddrSpace, Fixup);
 
   case LSRUse::ICmpZero:
@@ -1819,11 +1819,11 @@ static InstructionCost getScalingFactorCost(const TargetTransformInfo &TTI,
     // Check the scaling factor cost with both the min and max offsets.
     InstructionCost ScaleCostMinOffset = TTI.getScalingFactorCost(
         LU.AccessTy.MemTy, F.BaseGV,
-        AddressOffset::getFixed(F.BaseOffset + LU.MinOffset), F.HasBaseReg,
+        TargetImmediate::getFixed(F.BaseOffset + LU.MinOffset), F.HasBaseReg,
         F.Scale, LU.AccessTy.AddrSpace);
     InstructionCost ScaleCostMaxOffset = TTI.getScalingFactorCost(
         LU.AccessTy.MemTy, F.BaseGV,
-        AddressOffset::getFixed(F.BaseOffset + LU.MaxOffset), F.HasBaseReg,
+        TargetImmediate::getFixed(F.BaseOffset + LU.MaxOffset), F.HasBaseReg,
         F.Scale, LU.AccessTy.AddrSpace);
 
     assert(ScaleCostMinOffset.isValid() && ScaleCostMaxOffset.isValid() &&
@@ -2511,13 +2511,13 @@ LSRInstance::OptimizeLoopTermCond() {
               int64_t Scale = C->getSExtValue();
               if (TTI.isLegalAddressingMode(
                       AccessTy.MemTy, /*BaseGV=*/nullptr,
-                      /*BaseOffset=*/AddressOffset::getFixed(0),
+                      /*BaseOffset=*/TargetImmediate::getFixed(0),
                       /*HasBaseReg=*/true, Scale, AccessTy.AddrSpace))
                 goto decline_post_inc;
               Scale = -Scale;
               if (TTI.isLegalAddressingMode(
                       AccessTy.MemTy, /*BaseGV=*/nullptr,
-                      /*BaseOffset=*/AddressOffset::getFixed(0),
+                      /*BaseOffset=*/TargetImmediate::getFixed(0),
                       /*HasBaseReg=*/true, Scale, AccessTy.AddrSpace))
                 goto decline_post_inc;
             }
@@ -3734,8 +3734,8 @@ void LSRInstance::GenerateReassociationsImpl(LSRUse &LU, unsigned LUIdx,
     // Add the remaining pieces of the add back into the new formula.
     const SCEVConstant *InnerSumSC = dyn_cast<SCEVConstant>(InnerSum);
     if (InnerSumSC && SE.getTypeSizeInBits(InnerSumSC->getType()) <= 64 &&
-        TTI.isLegalAddImmediate((uint64_t)F.UnfoldedOffset +
-                                InnerSumSC->getValue()->getZExtValue())) {
+        TTI.isLegalAddImmediate(TargetImmediate::getFixed((uint64_t)F.UnfoldedOffset +
+                                InnerSumSC->getValue()->getZExtValue()))) {
       F.UnfoldedOffset =
           (uint64_t)F.UnfoldedOffset + InnerSumSC->getValue()->getZExtValue();
       if (IsScaledReg)
@@ -3750,8 +3750,8 @@ void LSRInstance::GenerateReassociationsImpl(LSRUse &LU, unsigned LUIdx,
     // Add J as its own register, or an unfolded immediate.
     const SCEVConstant *SC = dyn_cast<SCEVConstant>(*J);
     if (SC && SE.getTypeSizeInBits(SC->getType()) <= 64 &&
-        TTI.isLegalAddImmediate((uint64_t)F.UnfoldedOffset +
-                                SC->getValue()->getZExtValue()))
+        TTI.isLegalAddImmediate(TargetImmediate::getFixed((uint64_t)F.UnfoldedOffset +
+                                SC->getValue()->getZExtValue())))
       F.UnfoldedOffset =
           (uint64_t)F.UnfoldedOffset + SC->getValue()->getZExtValue();
     else
@@ -4397,7 +4397,7 @@ void LSRInstance::GenerateCrossUseConstantOffsets() {
             if (AMK == TTI::AMK_PostIndexed &&
                 mayUsePostIncMode(TTI, LU, OrigReg, this->L, SE))
               continue;
-            if (!TTI.isLegalAddImmediate((uint64_t)NewF.UnfoldedOffset + Imm))
+            if (!TTI.isLegalAddImmediate(TargetImmediate::getFixed((uint64_t)NewF.UnfoldedOffset + Imm)))
               continue;
             NewF = F;
             NewF.UnfoldedOffset = (uint64_t)NewF.UnfoldedOffset + Imm;
@@ -5034,12 +5034,12 @@ static bool IsSimplerBaseSCEVForTarget(const TargetTransformInfo &TTI,
   return TTI.isLegalAddressingMode(
              AccessType.MemTy, /*BaseGV=*/nullptr,
              /*BaseOffset=*/
-             AddressOffset::getFixed(Diff->getAPInt().getSExtValue()),
+             TargetImmediate::getFixed(Diff->getAPInt().getSExtValue()),
              /*HasBaseReg=*/true, /*Scale=*/0, AccessType.AddrSpace) &&
          !TTI.isLegalAddressingMode(
              AccessType.MemTy, /*BaseGV=*/nullptr,
              /*BaseOffset=*/
-             AddressOffset::getFixed(-Diff->getAPInt().getSExtValue()),
+             TargetImmediate::getFixed(-Diff->getAPInt().getSExtValue()),
              /*HasBaseReg=*/true, /*Scale=*/0, AccessType.AddrSpace);
 }
 

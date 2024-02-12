@@ -944,9 +944,9 @@ bool SystemZTargetLowering::isLegalICmpImmediate(int64_t Imm) const {
   return isInt<32>(Imm) || isUInt<32>(Imm);
 }
 
-bool SystemZTargetLowering::isLegalAddImmediate(int64_t Imm) const {
+bool SystemZTargetLowering::isLegalAddImmediate(TargetImmediate Imm) const {
   // We can use ALGFI or SLGFI.
-  return isUInt<32>(Imm) || isUInt<32>(-Imm);
+  return isUInt<32>(Imm.getFixedValue()) || isUInt<32>(-Imm.getFixedValue());
 }
 
 bool SystemZTargetLowering::allowsMisalignedMemoryAccesses(

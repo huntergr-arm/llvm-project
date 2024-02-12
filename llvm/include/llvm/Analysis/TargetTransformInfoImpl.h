@@ -214,12 +214,12 @@ public:
   void getPeelingPreferences(Loop *, ScalarEvolution &,
                              TTI::PeelingPreferences &) const {}
 
-  bool isLegalAddImmediate(int64_t Imm) const { return false; }
+  bool isLegalAddImmediate(TargetImmediate Imm) const { return false; }
 
   bool isLegalICmpImmediate(int64_t Imm) const { return false; }
 
   bool isLegalAddressingMode(Type *Ty, GlobalValue *BaseGV,
-                             AddressOffset BaseOffset, bool HasBaseReg,
+                             TargetImmediate BaseOffset, bool HasBaseReg,
                              int64_t Scale, unsigned AddrSpace,
                              Instruction *I = nullptr) const {
     // Guess that only reg and reg+reg addressing is allowed. This heuristic is
@@ -320,7 +320,7 @@ public:
   bool prefersVectorizedAddressing() const { return true; }
 
   InstructionCost getScalingFactorCost(Type *Ty, GlobalValue *BaseGV,
-                                       AddressOffset BaseOffset,
+                                       TargetImmediate BaseOffset,
                                        bool HasBaseReg, int64_t Scale,
                                        unsigned AddrSpace) const {
     // Guess that all legal addressing mode are free.
@@ -1098,7 +1098,7 @@ public:
     // access type, then we can fold it into its users.
     if (static_cast<T *>(this)->isLegalAddressingMode(
             AccessType, const_cast<GlobalValue *>(BaseGV),
-            AddressOffset::getFixed(BaseOffset.sextOrTrunc(64).getSExtValue()),
+            TargetImmediate::getFixed(BaseOffset.sextOrTrunc(64).getSExtValue()),
             HasBaseReg, Scale, Ptr->getType()->getPointerAddressSpace()))
       return TTI::TCC_Free;
 

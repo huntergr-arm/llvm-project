@@ -1238,7 +1238,7 @@ bool DAGCombiner::reassociationCanBreakAddressingModePattern(unsigned Opc,
         // that's the one we hope to fold into the load or store).
         TargetLoweringBase::AddrMode AM;
         AM.HasBaseReg = true;
-        AM.BaseOffs = AddressOffset::getFixed(C2APIntVal.getSExtValue());
+        AM.BaseOffs = TargetImmediate::getFixed(C2APIntVal.getSExtValue());
         EVT VT = LoadStore->getMemoryVT();
         unsigned AS = LoadStore->getAddressSpace();
         Type *AccessTy = VT.getTypeForEVT(*DAG.getContext());
@@ -1246,7 +1246,7 @@ bool DAGCombiner::reassociationCanBreakAddressingModePattern(unsigned Opc,
           continue;
 
         // Would x[offset1+offset2] still be a legal addressing mode?
-        AM.BaseOffs = AddressOffset::getFixed(CombinedValue);
+        AM.BaseOffs = TargetImmediate::getFixed(CombinedValue);
         if (!TLI.isLegalAddressingMode(DAG.getDataLayout(), AM, AccessTy, AS))
           return true;
       }
@@ -1265,7 +1265,7 @@ bool DAGCombiner::reassociationCanBreakAddressingModePattern(unsigned Opc,
       // reassociating the constants breaks address pattern
       TargetLoweringBase::AddrMode AM;
       AM.HasBaseReg = true;
-      AM.BaseOffs = AddressOffset::getFixed(C2APIntVal.getSExtValue());
+      AM.BaseOffs = TargetImmediate::getFixed(C2APIntVal.getSExtValue());
       EVT VT = LoadStore->getMemoryVT();
       unsigned AS = LoadStore->getAddressSpace();
       Type *AccessTy = VT.getTypeForEVT(*DAG.getContext());
@@ -2450,7 +2450,7 @@ static bool canFoldInAddressingMode(SDNode *N, SDNode *Use, SelectionDAG &DAG,
     ConstantSDNode *Offset = dyn_cast<ConstantSDNode>(N->getOperand(1));
     if (Offset)
       // [reg +/- imm]
-      AM.BaseOffs = AddressOffset::getFixed(Offset->getSExtValue());
+      AM.BaseOffs = TargetImmediate::getFixed(Offset->getSExtValue());
     else
       // [reg +/- reg]
       AM.Scale = 1;
@@ -2459,7 +2459,7 @@ static bool canFoldInAddressingMode(SDNode *N, SDNode *Use, SelectionDAG &DAG,
     ConstantSDNode *Offset = dyn_cast<ConstantSDNode>(N->getOperand(1));
     if (Offset)
       // [reg +/- imm]
-      AM.BaseOffs = AddressOffset::getFixed(-Offset->getSExtValue());
+      AM.BaseOffs = TargetImmediate::getFixed(-Offset->getSExtValue());
     else
       // [reg +/- reg]
       AM.Scale = 1;
@@ -6381,12 +6381,12 @@ SDValue DAGCombiner::visitANDLike(SDValue N0, SDValue N1, SDNode *N) {
         APInt ADDC = ADDI->getAPIntValue();
         APInt SRLC = SRLI->getAPIntValue();
         if (ADDC.getSignificantBits() <= 64 && SRLC.ult(VT.getSizeInBits()) &&
-            !TLI.isLegalAddImmediate(ADDC.getSExtValue())) {
+            !TLI.isLegalAddImmediate(TargetImmediate::getFixed(ADDC.getSExtValue()))) {
           APInt Mask = APInt::getHighBitsSet(VT.getSizeInBits(),
                                              SRLC.getZExtValue());
           if (DAG.MaskedValueIsZero(N0.getOperand(1), Mask)) {
             ADDC |= Mask;
-            if (TLI.isLegalAddImmediate(ADDC.getSExtValue())) {
+            if (TLI.isLegalAddImmediate(TargetImmediate::getFixed(ADDC.getSExtValue()))) {
               SDLoc DL0(N0);
               SDValue NewAdd =
                 DAG.getNode(ISD::ADD, DL0, VT,
@@ -19119,7 +19119,7 @@ struct LoadedSlice {
       return false;
 
     // 2. Check that it fits in the immediate.
-    if (!TLI.isLegalAddImmediate(getOffsetFromBase()))
+    if (!TLI.isLegalAddImmediate(TargetImmediate::getFixed(getOffsetFromBase())))
       return false;
 
     // 3. Check that the computation is legal.

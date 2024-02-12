@@ -4911,8 +4911,8 @@ bool LoongArchTargetLowering::isLegalICmpImmediate(int64_t Imm) const {
   return isInt<12>(Imm);
 }
 
-bool LoongArchTargetLowering::isLegalAddImmediate(int64_t Imm) const {
-  return isInt<12>(Imm);
+bool LoongArchTargetLowering::isLegalAddImmediate(TargetImmediate Imm) const {
+  return isInt<12>(Imm.getFixedValue());
 }
 
 bool LoongArchTargetLowering::isZExtFree(SDValue Val, EVT VT2) const {

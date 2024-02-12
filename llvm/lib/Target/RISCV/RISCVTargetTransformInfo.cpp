@@ -213,7 +213,7 @@ InstructionCost RISCVTTIImpl::getIntImmCostInst(unsigned Opcode, unsigned Idx,
     if (Instruction::isCommutative(Opcode) || Idx == ImmArgIdx) {
       // ... and fits into the 12-bit immediate.
       if (Imm.getSignificantBits() <= 64 &&
-          getTLI()->isLegalAddImmediate(Imm.getSExtValue())) {
+          getTLI()->isLegalAddImmediate(TargetImmediate::getFixed(Imm.getSExtValue()))) {
         return TTI::TCC_Free;
       }
     }
@@ -1453,7 +1453,7 @@ InstructionCost RISCVTTIImpl::getPointersChainCost(
           isLegalAddressingMode(
               AccessTy,
               /* BaseGV */ nullptr,
-              /* BaseOffset */ AddressOffset::getFixed(Stride * I),
+              /* BaseOffset */ TargetImmediate::getFixed(Stride * I),
               /* HasBaseReg */ true,
               /* Scale */ 0, GEP->getType()->getPointerAddressSpace()))
         continue;

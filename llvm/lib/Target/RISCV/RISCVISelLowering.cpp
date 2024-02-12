@@ -1780,8 +1780,8 @@ bool RISCVTargetLowering::isLegalICmpImmediate(int64_t Imm) const {
   return isInt<12>(Imm);
 }
 
-bool RISCVTargetLowering::isLegalAddImmediate(int64_t Imm) const {
-  return isInt<12>(Imm);
+bool RISCVTargetLowering::isLegalAddImmediate(TargetImmediate Imm) const {
+  return isInt<12>(Imm.getFixedValue());
 }
 
 // On RV32, 64-bit integers are split into their high and low parts and held
@@ -16555,13 +16555,13 @@ bool RISCVTargetLowering::isDesirableToCommuteWithShift(
       // and the combine should happen, to potentially allow further combines
       // later.
       if (ShiftedC1Int.getSignificantBits() <= 64 &&
-          isLegalAddImmediate(ShiftedC1Int.getSExtValue()))
+          isLegalAddImmediate(TargetImmediate::getFixed(ShiftedC1Int.getSExtValue())))
         return true;
 
       // We can materialise `c1` in an add immediate, so it's "free", and the
       // combine should be prevented.
       if (C1Int.getSignificantBits() <= 64 &&
-          isLegalAddImmediate(C1Int.getSExtValue()))
+          isLegalAddImmediate(TargetImmediate::getFixed(C1Int.getSExtValue())))
         return false;
 
       // Neither constant will fit into an immediate, so find materialisation

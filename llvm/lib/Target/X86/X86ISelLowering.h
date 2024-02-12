@@ -1325,7 +1325,7 @@ namespace llvm {
     /// add immediate, that is the target has add instructions which can
     /// add a register and the immediate without having to materialize
     /// the immediate into a register.
-    bool isLegalAddImmediate(int64_t Imm) const override;
+    bool isLegalAddImmediate(TargetImmediate Imm) const override;
 
     bool isLegalStoreImmediate(int64_t Imm) const override;
 

@@ -259,7 +259,7 @@ AMDGPUPerfHintAnalysis::FuncInfo *AMDGPUPerfHint::visit(const Function &F) {
         TargetLoweringBase::AddrMode AM;
         int64_t BaseOffs;
         auto *Ptr = GetPointerBaseWithConstantOffset(GEP, BaseOffs, *DL);
-        AM.BaseOffs = AddressOffset::getFixed(BaseOffs);
+        AM.BaseOffs = TargetImmediate::getFixed(BaseOffs);
         AM.BaseGV = dyn_cast_or_null<GlobalValue>(const_cast<Value *>(Ptr));
         AM.HasBaseReg = !AM.BaseGV;
         if (TLI->isLegalAddressingMode(*DL, AM, GEP->getResultElementType(),

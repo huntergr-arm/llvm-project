@@ -16,7 +16,7 @@ struct AddrMode : public TargetLowering::AddrMode {
   constexpr AddrMode(GlobalValue *GV, int64_t Offs, bool ScalableOffs,
                      bool HasBase, int64_t S) {
     BaseGV = GV;
-    BaseOffs = AddressOffset::get(Offs, ScalableOffs);
+    BaseOffs = TargetImmediate::get(Offs, ScalableOffs);
     HasBaseReg = HasBase;
     Scale = S;
   }

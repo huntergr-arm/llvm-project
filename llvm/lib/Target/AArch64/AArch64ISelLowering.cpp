@@ -16279,7 +16279,8 @@ LLT AArch64TargetLowering::getOptimalMemOpLLT(
 }
 
 // 12-bit optionally shifted immediates are legal for adds.
-bool AArch64TargetLowering::isLegalAddImmediate(int64_t Immed) const {
+bool AArch64TargetLowering::isLegalAddImmediate(TargetImmediate TI) const {
+  int64_t Immed = TI.getFixedValue();
   if (Immed == std::numeric_limits<int64_t>::min()) {
     LLVM_DEBUG(dbgs() << "Illegal add imm " << Immed
                       << ": avoid UB for INT64_MIN\n");
@@ -16310,7 +16311,8 @@ bool AArch64TargetLowering::isMulAddWithConstProfitable(
   const ConstantSDNode *C2Node = cast<ConstantSDNode>(ConstNode);
   const int64_t C1 = C1Node->getSExtValue();
   const APInt C1C2 = C1Node->getAPIntValue() * C2Node->getAPIntValue();
-  if (!isLegalAddImmediate(C1) || isLegalAddImmediate(C1C2.getSExtValue()))
+  if (!isLegalAddImmediate(TargetImmediate::getFixed(C1)) ||
+       isLegalAddImmediate(TargetImmediate::getFixed(C1C2.getSExtValue())))
     return true;
   SmallVector<AArch64_IMM::ImmInsnModel, 4> Insn;
   // Adapt to the width of a register.
@@ -16326,7 +16328,7 @@ bool AArch64TargetLowering::isMulAddWithConstProfitable(
 // Integer comparisons are implemented with ADDS/SUBS, so the range of valid
 // immediates is the same as for an add or a sub.
 bool AArch64TargetLowering::isLegalICmpImmediate(int64_t Immed) const {
-  return isLegalAddImmediate(Immed);
+  return isLegalAddImmediate(TargetImmediate::getFixed(Immed));
 }
 
 /// isLegalAddressingMode - Return true if the addressing mode represented
@@ -16412,7 +16414,8 @@ int64_t
 AArch64TargetLowering::getPreferredLargeGEPBaseOffset(int64_t MinOffset,
                                                       int64_t MaxOffset) const {
   int64_t HighPart = MinOffset & ~0xfffULL;
-  if (MinOffset >> 12 == MaxOffset >> 12 && isLegalAddImmediate(HighPart)) {
+  if (MinOffset >> 12 == MaxOffset >> 12 &&
+      isLegalAddImmediate(TargetImmediate::getFixed(HighPart))) {
     // Rebase the value to an integer multiple of imm12.
     return HighPart;
   }
@@ -18870,7 +18873,7 @@ static SDValue performAddCSelIntoCSinc(SDNode *N, SelectionDAG &DAG) {
   // materialized in a register.
   APInt ADDC = CTVal->getAPIntValue();
   const TargetLowering &TLI = DAG.getTargetLoweringInfo();
-  if (!TLI.isLegalAddImmediate(ADDC.getSExtValue()))
+  if (!TLI.isLegalAddImmediate(TargetImmediate::getFixed(ADDC.getSExtValue())))
     return SDValue();
 
   assert(((LHS.getOpcode() == AArch64ISD::CSEL && CFVal->isOne()) ||

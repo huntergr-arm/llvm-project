@@ -2845,7 +2845,7 @@ struct ExtAddrMode : public TargetLowering::AddrMode {
       assert(ScaledReg == nullptr);
       ScaledReg = V;
       Scale = 1;
-      BaseOffs = AddressOffset::getFixed(0);
+      BaseOffs = TargetImmediate::getFixed(0);
       break;
     }
   }
@@ -6278,7 +6278,7 @@ bool CodeGenPrepare::splitLargeGEPOffsets() {
       if (Offset != BaseOffset) {
         TargetLowering::AddrMode AddrMode;
         AddrMode.HasBaseReg = true;
-        AddrMode.BaseOffs = AddressOffset::getFixed(Offset - BaseOffset);
+        AddrMode.BaseOffs = TargetImmediate::getFixed(Offset - BaseOffset);
         // The result type of the GEP might not be the type of the memory
         // access.
         if (!TLI->isLegalAddressingMode(*DL, AddrMode,

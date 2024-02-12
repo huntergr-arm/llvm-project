@@ -390,26 +390,26 @@ public:
 
 // An offset from an address that is either scalable or fixed. Used for
 // per-target optimizations of addressing modes.
-class AddressOffset
-    : public details::FixedOrScalableQuantity<AddressOffset, int64_t> {
-  constexpr AddressOffset(ScalarTy MinVal, bool Scalable)
+class TargetImmediate
+    : public details::FixedOrScalableQuantity<TargetImmediate, int64_t> {
+  constexpr TargetImmediate(ScalarTy MinVal, bool Scalable)
       : FixedOrScalableQuantity(MinVal, Scalable) {}
 
-  constexpr AddressOffset(
-      const FixedOrScalableQuantity<AddressOffset, int64_t> &V)
+  constexpr TargetImmediate(
+      const FixedOrScalableQuantity<TargetImmediate, int64_t> &V)
       : FixedOrScalableQuantity(V) {}
 
 public:
-  constexpr AddressOffset() : FixedOrScalableQuantity() {}
+  constexpr TargetImmediate() : FixedOrScalableQuantity() {}
 
-  static constexpr AddressOffset getFixed(ScalarTy MinVal) {
-    return AddressOffset(MinVal, false);
+  static constexpr TargetImmediate getFixed(ScalarTy MinVal) {
+    return TargetImmediate(MinVal, false);
   }
-  static constexpr AddressOffset getScalable(ScalarTy MinVal) {
-    return AddressOffset(MinVal, true);
+  static constexpr TargetImmediate getScalable(ScalarTy MinVal) {
+    return TargetImmediate(MinVal, true);
   }
-  static constexpr AddressOffset get(ScalarTy MinVal, bool Scalable) {
-    return AddressOffset(MinVal, Scalable);
+  static constexpr TargetImmediate get(ScalarTy MinVal, bool Scalable) {
+    return TargetImmediate(MinVal, Scalable);
   }
 
   constexpr bool isLessThanZero() const { return Quantity < 0; }
@@ -419,14 +419,14 @@ public:
   // TODO: Remove these and insist on AddressOffsets for both sides?
   // Or maybe we can have user-defined literals? e.g. 8_sc or 16_fx?
   // Maybe a short suffix isn't obvious enough...
-  friend constexpr AddressOffset &operator+=(AddressOffset &LHS,
+  friend constexpr TargetImmediate &operator+=(TargetImmediate &LHS,
                                              const int64_t RHS) {
     assert(!LHS.Scalable && "Incompatible types");
     LHS.Quantity += RHS;
     return LHS;
   }
 
-  friend constexpr AddressOffset &operator-=(AddressOffset &LHS,
+  friend constexpr TargetImmediate &operator-=(TargetImmediate &LHS,
                                              const int64_t RHS) {
     assert(!LHS.Scalable && "Incompatible types");
     LHS.Quantity -= RHS;

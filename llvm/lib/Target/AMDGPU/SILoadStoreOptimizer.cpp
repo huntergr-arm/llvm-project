@@ -2214,7 +2214,7 @@ bool SILoadStoreOptimizer::promoteConstantOffsetToImm(
     int64_t Dist = MAddr.Offset - MAddrNext.Offset;
     TargetLoweringBase::AddrMode AM;
     AM.HasBaseReg = true;
-    AM.BaseOffs = AddressOffset::getFixed(Dist);
+    AM.BaseOffs = TargetImmediate::getFixed(Dist);
     if (TLI->isLegalGlobalAddressingMode(AM) &&
         (uint32_t)std::abs(Dist) > MaxDist) {
       MaxDist = std::abs(Dist);
@@ -2239,7 +2239,7 @@ bool SILoadStoreOptimizer::promoteConstantOffsetToImm(
     for (auto P : InstsWCommonBase) {
       TargetLoweringBase::AddrMode AM;
       AM.HasBaseReg = true;
-      AM.BaseOffs = AddressOffset::getFixed(P.second - AnchorAddr.Offset);
+      AM.BaseOffs = TargetImmediate::getFixed(P.second - AnchorAddr.Offset);
 
       if (TLI->isLegalGlobalAddressingMode(AM)) {
         LLVM_DEBUG(dbgs() << "  Promote Offset(" << P.second;

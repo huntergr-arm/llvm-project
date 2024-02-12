@@ -324,7 +324,7 @@ public:
     return nullptr;
   }
 
-  bool isLegalAddImmediate(int64_t imm) {
+  bool isLegalAddImmediate(TargetImmediate imm) {
     return getTLI()->isLegalAddImmediate(imm);
   }
 
@@ -333,7 +333,7 @@ public:
   }
 
   bool isLegalAddressingMode(Type *Ty, GlobalValue *BaseGV,
-                             AddressOffset BaseOffset, bool HasBaseReg,
+                             TargetImmediate BaseOffset, bool HasBaseReg,
                              int64_t Scale, unsigned AddrSpace,
                              Instruction *I = nullptr) {
     TargetLoweringBase::AddrMode AM;
@@ -398,7 +398,7 @@ public:
   }
 
   InstructionCost getScalingFactorCost(Type *Ty, GlobalValue *BaseGV,
-                                       AddressOffset BaseOffset,
+                                       TargetImmediate BaseOffset,
                                        bool HasBaseReg, int64_t Scale,
                                        unsigned AddrSpace) {
     TargetLoweringBase::AddrMode AM;

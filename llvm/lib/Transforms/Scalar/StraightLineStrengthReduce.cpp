@@ -291,7 +291,7 @@ static bool isAddFoldable(const SCEV *Base, ConstantInt *Index, Value *Stride,
   // Index->getSExtValue() may crash if Index is wider than 64-bit.
   return Index->getBitWidth() <= 64 &&
          TTI->isLegalAddressingMode(Base->getType(), nullptr,
-                                    AddressOffset::getFixed(0), true,
+                                    TargetImmediate::getFixed(0), true,
                                     Index->getSExtValue(), UnknownAddressSpace);
 }
 

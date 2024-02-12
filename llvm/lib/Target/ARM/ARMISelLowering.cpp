@@ -19724,7 +19724,8 @@ bool ARMTargetLowering::isLegalICmpImmediate(int64_t Imm) const {
 /// *or sub* immediate, that is the target has add or sub instructions which can
 /// add a register with the immediate without having to materialize the
 /// immediate into a register.
-bool ARMTargetLowering::isLegalAddImmediate(int64_t Imm) const {
+bool ARMTargetLowering::isLegalAddImmediate(TargetImmediate TI) const {
+  int64_t Imm = TI.getFixedValue();
   // Same encoding for add/sub, just flip the sign.
   int64_t AbsImm = std::abs(Imm);
   if (!Subtarget->isThumb())
@@ -19751,7 +19752,8 @@ bool ARMTargetLowering::isMulAddWithConstProfitable(SDValue AddNode,
   const ConstantSDNode *C1Node = cast<ConstantSDNode>(ConstNode);
   const int64_t C0 = C0Node->getSExtValue();
   APInt CA = C0Node->getAPIntValue() * C1Node->getAPIntValue();
-  if (!isLegalAddImmediate(C0) || isLegalAddImmediate(CA.getSExtValue()))
+  if (!isLegalAddImmediate(TargetImmediate::getFixed(C0)) ||
+       isLegalAddImmediate(TargetImmediate::getFixed(CA.getSExtValue())))
     return true;
   if (ConstantMaterializationCost((unsigned)CA.getZExtValue(), Subtarget) > 1)
     return false;
