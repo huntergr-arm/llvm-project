@@ -4200,7 +4200,7 @@ bool AddressingModeMatcher::matchScaledValue(Value *ScaleReg, int64_t Scale,
       !isIVIncrement(ScaleReg, &LI) && CI->getValue().isSignedIntN(64)) {
     TestAddrMode.InBounds = false;
     TestAddrMode.ScaledReg = AddLHS;
-    TestAddrMode.BaseOffs += CI->getSExtValue() * TestAddrMode.Scale;
+    TestAddrMode.BaseOffs += TargetImmediate::getFixed(CI->getSExtValue() * TestAddrMode.Scale);
 
     // If this addressing mode is legal, commit it and remember that we folded
     // this instruction.
@@ -4261,7 +4261,7 @@ bool AddressingModeMatcher::matchScaledValue(Value *ScaleReg, int64_t Scale,
       if (Offset.isSignedIntN(64)) {
         TestAddrMode.InBounds = false;
         TestAddrMode.ScaledReg = IVInc;
-        TestAddrMode.BaseOffs -= Offset.getLimitedValue();
+        TestAddrMode.BaseOffs -= TargetImmediate::getFixed(Offset.getLimitedValue());
         // If this addressing mode is legal, commit it..
         // (Note that we defer the (expensive) domtree base legality check
         // to the very last possible point.)
@@ -4910,13 +4910,13 @@ bool AddressingModeMatcher::matchOperationAddr(User *AddrInst, unsigned Opcode,
     // A common case is for the GEP to only do a constant offset.  In this case,
     // just add it to the disp field and check validity.
     if (VariableOperand == -1) {
-      AddrMode.BaseOffs += ConstantOffset;
+      AddrMode.BaseOffs += TargetImmediate::getFixed(ConstantOffset);
       if (matchAddr(AddrInst->getOperand(0), Depth + 1)) {
           if (!cast<GEPOperator>(AddrInst)->isInBounds())
             AddrMode.InBounds = false;
           return true;
       }
-      AddrMode.BaseOffs -= ConstantOffset;
+      AddrMode.BaseOffs -= TargetImmediate::getFixed(ConstantOffset);
 
       if (EnableGEPOffsetSplit && isa<GetElementPtrInst>(AddrInst) &&
           TLI.shouldConsiderGEPOffsetSplit() && Depth == 0 &&
@@ -4948,7 +4948,7 @@ bool AddressingModeMatcher::matchOperationAddr(User *AddrInst, unsigned Opcode,
     unsigned OldSize = AddrModeInsts.size();
 
     // See if the scale and offset amount is valid for this target.
-    AddrMode.BaseOffs += ConstantOffset;
+    AddrMode.BaseOffs += TargetImmediate::getFixed(ConstantOffset);
     if (!cast<GEPOperator>(AddrInst)->isInBounds())
       AddrMode.InBounds = false;
 
@@ -4975,7 +4975,7 @@ bool AddressingModeMatcher::matchOperationAddr(User *AddrInst, unsigned Opcode,
         return false;
       AddrMode.HasBaseReg = true;
       AddrMode.BaseReg = AddrInst->getOperand(0);
-      AddrMode.BaseOffs += ConstantOffset;
+      AddrMode.BaseOffs += TargetImmediate::getFixed(ConstantOffset);
       if (!matchScaledValue(AddrInst->getOperand(VariableOperand),
                             VariableScale, Depth)) {
         // If even that didn't work, bail.
@@ -5059,10 +5059,10 @@ bool AddressingModeMatcher::matchAddr(Value *Addr, unsigned Depth) {
   if (ConstantInt *CI = dyn_cast<ConstantInt>(Addr)) {
     if (CI->getValue().isSignedIntN(64)) {
       // Fold in immediates if legal for the target.
-      AddrMode.BaseOffs += CI->getSExtValue();
+      AddrMode.BaseOffs += TargetImmediate::getFixed(CI->getSExtValue());
       if (TLI.isLegalAddressingMode(DL, AddrMode, AccessTy, AddrSpace))
         return true;
-      AddrMode.BaseOffs -= CI->getSExtValue();
+      AddrMode.BaseOffs -= TargetImmediate::getFixed(CI->getSExtValue());
     }
   } else if (GlobalValue *GV = dyn_cast<GlobalValue>(Addr)) {
     // If this is a global variable, try to fold it into the addressing mode.

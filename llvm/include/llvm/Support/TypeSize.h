@@ -415,23 +415,6 @@ public:
   constexpr bool isLessThanZero() const { return Quantity < 0; }
 
   constexpr bool isGreaterThanZero() const { return Quantity > 0; }
-
-  // TODO: Remove these and insist on AddressOffsets for both sides?
-  // Or maybe we can have user-defined literals? e.g. 8_sc or 16_fx?
-  // Maybe a short suffix isn't obvious enough...
-  friend constexpr TargetImmediate &operator+=(TargetImmediate &LHS,
-                                             const int64_t RHS) {
-    assert(!LHS.Scalable && "Incompatible types");
-    LHS.Quantity += RHS;
-    return LHS;
-  }
-
-  friend constexpr TargetImmediate &operator-=(TargetImmediate &LHS,
-                                             const int64_t RHS) {
-    assert(!LHS.Scalable && "Incompatible types");
-    LHS.Quantity -= RHS;
-    return LHS;
-  }
 };
 
 //===----------------------------------------------------------------------===//

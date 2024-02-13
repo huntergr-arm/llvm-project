@@ -818,7 +818,13 @@ static TargetImmediate ExtractImmediate(const SCEV *&S, ScalarEvolution &SE) {
                            // FIXME: AR->getNoWrapFlags(SCEV::FlagNW)
                            SCEV::FlagAnyWrap);
     return Result;
-  }
+  } /*else if (const SCEVMulExpr *M = dyn_cast<SCEVMulExpr>(S)) {
+    if (const SCEVConstant *C = dyn_cast<SCEVConstant>(M->getOperand(0)))
+      if (isa<SCEVVScale>(M->getOperand(1))) {
+        S = SE.getConstant(M->getType(), 0);
+        return TargetImmediate::getScalable(C->getValue()->getSExtValue());
+      }
+  }*/
   return TargetImmediate::getFixed(0);
 }
 
@@ -3948,9 +3954,13 @@ void LSRInstance::GenerateConstantOffsetsImpl(
           StepInt.getSExtValue() : StepInt.getZExtValue();
 
         for (TargetImmediate Offset : Worklist) {
-          Offset -= Step;
-          GenerateOffset(G, Offset);
+          if (!Offset.isScalable()) {
+            Offset -= TargetImmediate::getFixed(Step);
+            GenerateOffset(G, Offset);
+          }
         }
+      } else {
+        LLVM_DEBUG(dbgs() << "Generating Constant Offset but step is scalable\n");
       }
     }
   }
@@ -4655,7 +4665,7 @@ void LSRInstance::NarrowSearchSpaceByDetectingSupersets() {
             Formula NewF = F;
             //FIXME: Formulas should store bitwidth to do wrapping properly.
             //       See PR41034.
-            NewF.BaseOffset += (uint64_t)C->getValue()->getSExtValue();
+            NewF.BaseOffset += TargetImmediate::getFixed((uint64_t)C->getValue()->getSExtValue());
             NewF.BaseRegs.erase(NewF.BaseRegs.begin() +
                                 (I - F.BaseRegs.begin()));
             if (LU.HasFormulaWithSameRegs(NewF)) {
