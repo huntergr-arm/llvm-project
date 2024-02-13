@@ -16280,6 +16280,19 @@ LLT AArch64TargetLowering::getOptimalMemOpLLT(
 
 // 12-bit optionally shifted immediates are legal for adds.
 bool AArch64TargetLowering::isLegalAddImmediate(TargetImmediate TI) const {
+  if (TI.isScalable() && Subtarget->hasSVE()) {
+    // Based on addvl, since we don't have a type to look at with the
+    // current interface. addvl's immediates are in terms of the number of
+    // bytes in a register. Since there are 16 in the base supported size
+    // (128bits), we need to divide the immediate by that much to give us
+    // a useful immediate to multiply by vscale. We can't have a remainder as
+    // a result of this.
+    if (TI.getKnownMinValue() % 16 != 0)
+      return false;
+    int64_t Imm = TI.getKnownMinValue() / 16;
+
+    return Imm >= -32 && Imm <= 31;
+  }
   int64_t Immed = TI.getFixedValue();
   if (Immed == std::numeric_limits<int64_t>::min()) {
     LLVM_DEBUG(dbgs() << "Illegal add imm " << Immed
@@ -16373,10 +16386,14 @@ bool AArch64TargetLowering::isLegalAddressingMode(const DataLayout &DL,
   if (Ty->isScalableTy()) {
     if (isa<ScalableVectorType>(Ty)) {
       uint64_t VecNumBytes = DL.getTypeSizeInBits(Ty).getKnownMinValue() / 8;
-      // See if we have a foldable vscale-based offset
+      // See if we have a foldable vscale-based offset, for vector types which
+      // are either legal or smaller than the minimum; more work will be
+      // required if we ever need to consider addressing for types which will
+      // be legalized by splitting.
       if (AM.HasBaseReg &&  AM.BaseOffs.isNonZero() && AM.BaseOffs.isScalable()
           && !AM.Scale &&
-          (AM.BaseOffs.getKnownMinValue() % 16 == 0) && VecNumBytes == 16) {
+          (AM.BaseOffs.getKnownMinValue() % VecNumBytes == 0) &&
+          VecNumBytes <= 16) {
         int64_t Idx = AM.BaseOffs.getKnownMinValue() / (int64_t)VecNumBytes;
         if (Idx >= -8 && Idx <= 7)
           return true;

@@ -190,45 +190,37 @@ define %"class.std::complex" @complex_mul_v2f64_unrolled(ptr %a, ptr %b) {
 ; CHECK-LABEL: complex_mul_v2f64_unrolled:
 ; CHECK:       // %bb.0: // %entry
 ; CHECK-NEXT:    mov z1.d, #0 // =0x0
-; CHECK-NEXT:    ptrue p1.b
-; CHECK-NEXT:    cntw x9
 ; CHECK-NEXT:    ptrue p0.d
-; CHECK-NEXT:    neg x9, x9
-; CHECK-NEXT:    mov w10, #1000 // =0x3e8
-; CHECK-NEXT:    rdvl x12, #2
-; CHECK-NEXT:    mov x8, xzr
-; CHECK-NEXT:    and x10, x9, x10
+; CHECK-NEXT:    cntw x8
+; CHECK-NEXT:    neg x8, x8
+; CHECK-NEXT:    mov w9, #1000 // =0x3e8
+; CHECK-NEXT:    rdvl x10, #4
+; CHECK-NEXT:    and x9, x8, x9
 ; CHECK-NEXT:    zip2 z0.d, z1.d, z1.d
 ; CHECK-NEXT:    zip1 z1.d, z1.d, z1.d
-; CHECK-NEXT:    add x11, x1, x12
-; CHECK-NEXT:    add x12, x0, x12
-; CHECK-NEXT:    rdvl x13, #4
 ; CHECK-NEXT:    mov z2.d, z1.d
 ; CHECK-NEXT:    mov z3.d, z0.d
 ; CHECK-NEXT:  .LBB2_1: // %vector.body
 ; CHECK-NEXT:    // =>This Inner Loop Header: Depth=1
-; CHECK-NEXT:    add x14, x0, x8
-; CHECK-NEXT:    add x15, x12, x8
-; CHECK-NEXT:    add x16, x1, x8
-; CHECK-NEXT:    add x17, x11, x8
-; CHECK-NEXT:    ld1b { z4.b }, p1/z, [x0, x8]
-; CHECK-NEXT:    ld1d { z5.d }, p0/z, [x14, #1, mul vl]
-; CHECK-NEXT:    ld1b { z6.b }, p1/z, [x12, x8]
-; CHECK-NEXT:    ld1b { z7.b }, p1/z, [x1, x8]
-; CHECK-NEXT:    ld1d { z16.d }, p0/z, [x16, #1, mul vl]
-; CHECK-NEXT:    ld1d { z17.d }, p0/z, [x15, #1, mul vl]
-; CHECK-NEXT:    ld1b { z18.b }, p1/z, [x11, x8]
-; CHECK-NEXT:    ld1d { z19.d }, p0/z, [x17, #1, mul vl]
-; CHECK-NEXT:    adds x10, x10, x9
-; CHECK-NEXT:    add x8, x8, x13
-; CHECK-NEXT:    fcmla z1.d, p0/m, z7.d, z4.d, #0
-; CHECK-NEXT:    fcmla z0.d, p0/m, z16.d, z5.d, #0
-; CHECK-NEXT:    fcmla z2.d, p0/m, z18.d, z6.d, #0
-; CHECK-NEXT:    fcmla z3.d, p0/m, z19.d, z17.d, #0
-; CHECK-NEXT:    fcmla z1.d, p0/m, z7.d, z4.d, #90
-; CHECK-NEXT:    fcmla z0.d, p0/m, z16.d, z5.d, #90
-; CHECK-NEXT:    fcmla z2.d, p0/m, z18.d, z6.d, #90
-; CHECK-NEXT:    fcmla z3.d, p0/m, z19.d, z17.d, #90
+; CHECK-NEXT:    ld1d { z4.d }, p0/z, [x0, #1, mul vl]
+; CHECK-NEXT:    ld1d { z5.d }, p0/z, [x0]
+; CHECK-NEXT:    adds x9, x9, x8
+; CHECK-NEXT:    ld1d { z6.d }, p0/z, [x0, #3, mul vl]
+; CHECK-NEXT:    ld1d { z7.d }, p0/z, [x1, #1, mul vl]
+; CHECK-NEXT:    ld1d { z16.d }, p0/z, [x1]
+; CHECK-NEXT:    ld1d { z17.d }, p0/z, [x0, #2, mul vl]
+; CHECK-NEXT:    add x0, x0, x10
+; CHECK-NEXT:    ld1d { z18.d }, p0/z, [x1, #3, mul vl]
+; CHECK-NEXT:    ld1d { z19.d }, p0/z, [x1, #2, mul vl]
+; CHECK-NEXT:    add x1, x1, x10
+; CHECK-NEXT:    fcmla z1.d, p0/m, z16.d, z5.d, #0
+; CHECK-NEXT:    fcmla z0.d, p0/m, z7.d, z4.d, #0
+; CHECK-NEXT:    fcmla z3.d, p0/m, z18.d, z6.d, #0
+; CHECK-NEXT:    fcmla z2.d, p0/m, z19.d, z17.d, #0
+; CHECK-NEXT:    fcmla z1.d, p0/m, z16.d, z5.d, #90
+; CHECK-NEXT:    fcmla z0.d, p0/m, z7.d, z4.d, #90
+; CHECK-NEXT:    fcmla z3.d, p0/m, z18.d, z6.d, #90
+; CHECK-NEXT:    fcmla z2.d, p0/m, z19.d, z17.d, #90
 ; CHECK-NEXT:    b.ne .LBB2_1
 ; CHECK-NEXT:  // %bb.2: // %exit.block
 ; CHECK-NEXT:    uzp1 z4.d, z2.d, z3.d

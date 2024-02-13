@@ -14,12 +14,9 @@ define dso_local void @_Z9test_qaddu10__SVBool_tPKhPhmm(<vscale x 16 x i1> %pg, 
 ; CHECK-NEXT:    [[TMP0:%.*]] = tail call <vscale x 8 x i1> @llvm.aarch64.sve.convert.from.svbool.nxv8i1(<vscale x 16 x i1> [[PG]])
 ; CHECK-NEXT:    [[TMP1:%.*]] = tail call i64 @llvm.vscale.i64()
 ; CHECK-NEXT:    [[MUL:%.*]] = shl i64 [[TMP1]], 5
-; CHECK-NEXT:    [[TMP2:%.*]] = shl nuw nsw i64 [[TMP1]], 4
 ; CHECK-NEXT:    [[SCEVGEP:%.*]] = getelementptr i8, ptr [[SRC_ROWS]], i64 [[STRIDE]]
-; CHECK-NEXT:    [[SCEVGEP1:%.*]] = getelementptr i8, ptr [[SCEVGEP]], i64 [[TMP2]]
-; CHECK-NEXT:    [[SCEVGEP4:%.*]] = getelementptr i8, ptr [[SRC_ROWS]], i64 [[TMP2]]
-; CHECK-NEXT:    [[TMP3:%.*]] = shl nuw nsw i64 [[TMP1]], 3
-; CHECK-NEXT:    [[SCEVGEP7:%.*]] = getelementptr i8, ptr [[DST_ROWS]], i64 [[TMP3]]
+; CHECK-NEXT:    [[TMP2:%.*]] = shl i64 [[TMP1]], 4
+; CHECK-NEXT:    [[TMP3:%.*]] = shl i64 [[TMP1]], 3
 ; CHECK-NEXT:    br label [[FOR_BODY:%.*]]
 ; CHECK:       for.cond.cleanup.loopexit:
 ; CHECK-NEXT:    br label [[FOR_COND_CLEANUP]]
@@ -31,11 +28,13 @@ define dso_local void @_Z9test_qaddu10__SVBool_tPKhPhmm(<vscale x 16 x i1> %pg, 
 ; CHECK-NEXT:    [[SCEVGEP6:%.*]] = getelementptr i8, ptr [[SRC_ROWS]], i64 [[LSR_IV]]
 ; CHECK-NEXT:    [[SCEVGEP9:%.*]] = getelementptr i8, ptr [[DST_ROWS]], i64 [[LSR_IV]]
 ; CHECK-NEXT:    [[TMP4:%.*]] = tail call <vscale x 16 x i8> @llvm.masked.load.nxv16i8.p0(ptr [[SCEVGEP6]], i32 1, <vscale x 16 x i1> [[PG]], <vscale x 16 x i8> zeroinitializer), !tbaa [[TBAA6:![0-9]+]]
-; CHECK-NEXT:    [[SCEVGEP5:%.*]] = getelementptr i8, ptr [[SCEVGEP4]], i64 [[LSR_IV]]
+; CHECK-NEXT:    [[SCEVGEP4:%.*]] = getelementptr i8, ptr [[SRC_ROWS]], i64 [[LSR_IV]]
+; CHECK-NEXT:    [[SCEVGEP5:%.*]] = getelementptr i8, ptr [[SCEVGEP4]], i64 [[TMP2]]
 ; CHECK-NEXT:    [[TMP5:%.*]] = tail call <vscale x 16 x i8> @llvm.masked.load.nxv16i8.p0(ptr [[SCEVGEP5]], i32 1, <vscale x 16 x i1> [[PG]], <vscale x 16 x i8> zeroinitializer), !tbaa [[TBAA6]]
 ; CHECK-NEXT:    [[SCEVGEP3:%.*]] = getelementptr i8, ptr [[SCEVGEP]], i64 [[LSR_IV]]
 ; CHECK-NEXT:    [[TMP6:%.*]] = tail call <vscale x 16 x i8> @llvm.masked.load.nxv16i8.p0(ptr [[SCEVGEP3]], i32 1, <vscale x 16 x i1> [[PG]], <vscale x 16 x i8> zeroinitializer), !tbaa [[TBAA6]]
-; CHECK-NEXT:    [[SCEVGEP2:%.*]] = getelementptr i8, ptr [[SCEVGEP1]], i64 [[LSR_IV]]
+; CHECK-NEXT:    [[SCEVGEP1:%.*]] = getelementptr i8, ptr [[SCEVGEP]], i64 [[LSR_IV]]
+; CHECK-NEXT:    [[SCEVGEP2:%.*]] = getelementptr i8, ptr [[SCEVGEP1]], i64 [[TMP2]]
 ; CHECK-NEXT:    [[TMP7:%.*]] = tail call <vscale x 16 x i8> @llvm.masked.load.nxv16i8.p0(ptr [[SCEVGEP2]], i32 1, <vscale x 16 x i1> [[PG]], <vscale x 16 x i8> zeroinitializer), !tbaa [[TBAA6]]
 ; CHECK-NEXT:    [[TMP8:%.*]] = tail call <vscale x 16 x i8> @llvm.aarch64.sve.uqadd.x.nxv16i8(<vscale x 16 x i8> [[TMP4]], <vscale x 16 x i8> [[TMP6]])
 ; CHECK-NEXT:    [[TMP9:%.*]] = tail call <vscale x 16 x i8> @llvm.aarch64.sve.uqadd.x.nxv16i8(<vscale x 16 x i8> [[TMP5]], <vscale x 16 x i8> [[TMP7]])
@@ -43,7 +42,8 @@ define dso_local void @_Z9test_qaddu10__SVBool_tPKhPhmm(<vscale x 16 x i1> %pg, 
 ; CHECK-NEXT:    [[TMP11:%.*]] = trunc <vscale x 8 x i16> [[TMP10]] to <vscale x 8 x i8>
 ; CHECK-NEXT:    tail call void @llvm.masked.store.nxv8i8.p0(<vscale x 8 x i8> [[TMP11]], ptr [[SCEVGEP9]], i32 1, <vscale x 8 x i1> [[TMP0]]), !tbaa [[TBAA6]]
 ; CHECK-NEXT:    [[TMP12:%.*]] = bitcast <vscale x 16 x i8> [[TMP9]] to <vscale x 8 x i16>
-; CHECK-NEXT:    [[SCEVGEP8:%.*]] = getelementptr i8, ptr [[SCEVGEP7]], i64 [[LSR_IV]]
+; CHECK-NEXT:    [[SCEVGEP7:%.*]] = getelementptr i8, ptr [[DST_ROWS]], i64 [[LSR_IV]]
+; CHECK-NEXT:    [[SCEVGEP8:%.*]] = getelementptr i8, ptr [[SCEVGEP7]], i64 [[TMP3]]
 ; CHECK-NEXT:    [[TMP13:%.*]] = trunc <vscale x 8 x i16> [[TMP12]] to <vscale x 8 x i8>
 ; CHECK-NEXT:    tail call void @llvm.masked.store.nxv8i8.p0(<vscale x 8 x i8> [[TMP13]], ptr [[SCEVGEP8]], i32 1, <vscale x 8 x i1> [[TMP0]]), !tbaa [[TBAA6]]
 ; CHECK-NEXT:    [[LSR_IV_NEXT]] = add i64 [[LSR_IV]], [[MUL]]

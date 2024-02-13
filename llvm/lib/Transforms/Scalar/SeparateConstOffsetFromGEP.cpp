@@ -997,7 +997,7 @@ bool SeparateConstOffsetFromGEP::reorderGEP(GetElementPtrInst *GEP,
 
   unsigned AddrSpace = PtrGEP->getPointerAddressSpace();
   if (!TTI.isLegalAddressingMode(GEP->getResultElementType(),
-                                 /*BaseGV=*/nullptr, NestedByteOffset,
+                                 /*BaseGV=*/nullptr, TargetImmediate::getFixed(NestedByteOffset),
                                  /*HasBaseReg=*/true, /*Scale=*/0, AddrSpace))
     return false;
 

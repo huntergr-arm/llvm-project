@@ -253,6 +253,10 @@ public:
     return TTI::AMK_None;
   }
 
+  bool shouldAvoidBaseScaleImmAddressing() const {
+    return false;
+  }
+
   bool isLegalMaskedStore(Type *DataType, Align Alignment) const {
     return false;
   }

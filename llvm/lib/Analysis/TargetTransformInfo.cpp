@@ -442,6 +442,10 @@ TargetTransformInfo::getPreferredAddressingMode(const Loop *L,
   return TTIImpl->getPreferredAddressingMode(L, SE);
 }
 
+bool TargetTransformInfo::shouldAvoidBaseScaleImmAddressing() const {
+  return TTIImpl->shouldAvoidBaseScaleImmAddressing();
+}
+
 bool TargetTransformInfo::isLegalMaskedStore(Type *DataType,
                                              Align Alignment) const {
   return TTIImpl->isLegalMaskedStore(DataType, Alignment);

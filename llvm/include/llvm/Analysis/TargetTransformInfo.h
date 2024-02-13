@@ -751,6 +751,8 @@ public:
   AddressingModeKind getPreferredAddressingMode(const Loop *L,
                                                 ScalarEvolution *SE) const;
 
+  bool shouldAvoidBaseScaleImmAddressing() const;
+
   /// Return true if the target supports masked store.
   bool isLegalMaskedStore(Type *DataType, Align Alignment) const;
   /// Return true if the target supports masked load.
@@ -1851,6 +1853,7 @@ public:
                           TargetLibraryInfo *LibInfo) = 0;
   virtual AddressingModeKind
     getPreferredAddressingMode(const Loop *L, ScalarEvolution *SE) const = 0;
+  virtual bool shouldAvoidBaseScaleImmAddressing() const = 0;
   virtual bool isLegalMaskedStore(Type *DataType, Align Alignment) = 0;
   virtual bool isLegalMaskedLoad(Type *DataType, Align Alignment) = 0;
   virtual bool isLegalNTStore(Type *DataType, Align Alignment) = 0;
@@ -2328,6 +2331,9 @@ public:
     getPreferredAddressingMode(const Loop *L,
                                ScalarEvolution *SE) const override {
     return Impl.getPreferredAddressingMode(L, SE);
+  }
+  bool shouldAvoidBaseScaleImmAddressing() const override {
+    return Impl.shouldAvoidBaseScaleImmAddressing();
   }
   bool isLegalMaskedStore(Type *DataType, Align Alignment) override {
     return Impl.isLegalMaskedStore(DataType, Alignment);
