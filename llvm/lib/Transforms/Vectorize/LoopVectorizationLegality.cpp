@@ -81,6 +81,10 @@ static cl::opt<bool> EnableHistogramVectorization(
     "enable-histogram-loop-vectorization", cl::init(false), cl::Hidden,
     cl::desc("Enables autovectorization of some loops containing histograms"));
 
+static cl::opt<bool> EnableConditionalScalarAssignment(
+    "enable-csa-vectorization", cl::init(false), cl::Hidden,
+    cl::desc("Control whether loop vectorization is enabled"));
+
 /// Maximum vectorization interleave count.
 static const unsigned MaxInterleaveFactor = 16;
 
@@ -837,6 +841,13 @@ bool LoopVectorizationLegality::canVectorizeInstrs() {
           Requirements->addExactFPMathInst(RedDes.getExactFPMathInst());
           AllowedExit.insert(RedDes.getLoopExitInstr());
           Reductions[Phi] = RedDes;
+          if (RecurrenceDescriptor::isCSARecurrenceKind(
+                  RedDes.getRecurrenceKind())) {
+            // TODO: Appropriate reportVectorizationFailure...
+            if (!EnableConditionalScalarAssignment &&
+                !TTI->enableConditionalScalarAssignmentVectorization())
+              return false;
+          }
           continue;
         }
 

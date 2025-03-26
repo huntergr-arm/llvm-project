@@ -176,6 +176,8 @@ const char LLVMLoopVectorizeFollowupEpilogue[] =
 STATISTIC(LoopsVectorized, "Number of loops vectorized");
 STATISTIC(LoopsAnalyzed, "Number of loops analyzed for vectorization");
 STATISTIC(LoopsEpilogueVectorized, "Number of epilogues vectorized");
+STATISTIC(ConditionalScalarAssignmentsVectorized,
+          "Number of conditional scalar assignments vectorized");
 
 static cl::opt<bool> EnableEpilogueVectorization(
     "enable-epilogue-vectorization", cl::init(true), cl::Hidden,
@@ -4455,6 +4457,7 @@ static bool willGenerateVectors(VPlan &Plan, ElementCount VF,
       case VPDef::VPWidenIntrinsicSC:
       case VPDef::VPWidenSC:
       case VPDef::VPWidenSelectSC:
+      case VPDef::VPWidenSelectVectorSC:
       case VPDef::VPBlendSC:
       case VPDef::VPFirstOrderRecurrencePHISC:
       case VPDef::VPWidenPHISC:
@@ -4887,6 +4890,13 @@ LoopVectorizationCostModel::selectInterleaveCount(ElementCount VF,
 
   auto BestKnownTC = getSmallBestKnownTC(PSE, TheLoop);
   const bool HasReductions = !Legal->getReductionVars().empty();
+
+  // Bail out for CSA until we implement cloning...
+  // FIXME: we don't really take into account a possible extra cost here.
+  // e.g. 2 independent clastbs aren't as expensive as one chained into another.
+  for (auto &[Phi, RdxDesc] : Legal->getReductionVars())
+    if (RecurrenceDescriptor::isCSARecurrenceKind(RdxDesc.getRecurrenceKind()))
+      return 1;
 
   // If we did not calculate the cost for VF (because the user selected the VF)
   // then we calculate the cost of VF here.
@@ -7427,6 +7437,8 @@ static bool planContainsAdditionalSimplifications(VPlan &Plan,
     return nullptr;
   };
 
+  // FIXME: CSA?
+
   DenseSet<Instruction *> SeenInstrs;
   auto Iter = vp_depth_first_deep(Plan.getVectorLoopRegion()->getEntry());
   for (VPBasicBlock *VPBB : VPBlockUtils::blocksOnly<VPBasicBlock>(Iter)) {
@@ -7609,6 +7621,12 @@ static void fixReductionScalarResumeWhenVectorizingEpilog(
     VPRecipeBase *R, VPTransformState &State, BasicBlock *LoopMiddleBlock,
     BasicBlock *BypassBlock) {
   auto *EpiRedResult = dyn_cast<VPInstruction>(R);
+
+  // We've not hit this for CSA yet...
+  if (EpiRedResult &&
+      EpiRedResult->getOpcode() == VPInstruction::ExtractLastActive)
+    llvm_unreachable("Implement fixReduction for CSA!");
+
   if (!EpiRedResult ||
       EpiRedResult->getOpcode() != VPInstruction::ComputeReductionResult)
     return;
@@ -8863,6 +8881,7 @@ VPRecipeBase *VPRecipeBuilder::tryToCreateWidenRecipe(
       // directly, enabling more efficient codegen.
       PhiRecipe = new VPFirstOrderRecurrencePHIRecipe(Phi, *StartV);
     }
+
     // Add backedge value.
     PhiRecipe->addOperand(Operands[1]);
     return PhiRecipe;
@@ -9568,6 +9587,8 @@ LoopVectorizationPlanner::tryToBuildVPlanWithVPRecipes(VFRange &Range) {
                                 *Plan, Builder))
     return nullptr;
 
+  VPlanTransforms::convertCSARecurrences(*Plan, RecipeBuilder, Legal);
+
   if (useActiveLaneMask(Style)) {
     // TODO: Move checks to VPlanTransforms::addActiveLaneMask once
     // TailFoldingStyle is visible there.
@@ -9665,6 +9686,7 @@ void LoopVectorizationPlanner::adjustRecipesForReductions(
     const RecurrenceDescriptor &RdxDesc = PhiR->getRecurrenceDescriptor();
     RecurKind Kind = RdxDesc.getRecurrenceKind();
     assert(
+        !RecurrenceDescriptor::isCSARecurrenceKind(Kind) &&
         !RecurrenceDescriptor::isAnyOfRecurrenceKind(Kind) &&
         !RecurrenceDescriptor::isFindLastIVRecurrenceKind(Kind) &&
         "AnyOf and FindLast reductions are not allowed for in-loop reductions");
@@ -9865,8 +9887,17 @@ void LoopVectorizationPlanner::adjustRecipesForReductions(
     // also modeled in VPlan.
     VPBuilder::InsertPointGuard Guard(Builder);
     Builder.setInsertPoint(MiddleVPBB, IP);
-    auto *FinalReductionResult = Builder.createNaryOp(
-        VPInstruction::ComputeReductionResult, {PhiR, NewExitingVPV}, ExitDL);
+    VPInstruction *FinalReductionResult = nullptr;
+    if (RecurrenceDescriptor::isCSARecurrenceKind(
+            RdxDesc.getRecurrenceKind())) {
+      ConditionalScalarAssignmentsVectorized++;
+      FinalReductionResult = Builder.createNaryOp(
+          VPInstruction::ExtractLastActive, {NewExitingVPV}, ExitDL);
+    } else {
+      FinalReductionResult = Builder.createNaryOp(
+          VPInstruction::ComputeReductionResult, {PhiR, NewExitingVPV}, ExitDL);
+    }
+
     // Update all users outside the vector region.
     OrigExitingVPV->replaceUsesWithIf(
         FinalReductionResult, [FinalReductionResult](VPUser &User, unsigned) {

@@ -53,6 +53,7 @@ bool RecurrenceDescriptor::isIntegerRecurrenceKind(RecurKind Kind) {
   case RecurKind::FAnyOf:
   case RecurKind::IFindLastIV:
   case RecurKind::FFindLastIV:
+  case RecurKind::CSA:
     return true;
   }
   return false;
@@ -750,6 +751,50 @@ RecurrenceDescriptor::isFindLastIVPattern(Loop *TheLoop, PHINode *OrigPhi,
 }
 
 RecurrenceDescriptor::InstDesc
+RecurrenceDescriptor::isConditionalScalarAssignmentPhi(PHINode *Phi,
+                                                       Instruction *I,
+                                                       Loop *TheLoop) {
+
+  // Must be a scalar.
+  Type *Type = Phi->getType();
+  if (!Type->isIntegerTy() && !Type->isFloatingPointTy() &&
+      !Type->isPointerTy())
+    return InstDesc(false, I);
+
+  // Match phi loop_inv, (select cmp, value, phi)
+  //    or phi loop_inv, (select cmp, phi, value)
+  //    or phi (select cmp, value, phi), loop_inv
+  //    or phi (select cmp, phi, value), loop_inv
+  SelectInst *Select = dyn_cast<SelectInst>(I);
+  if (!Select)
+    return InstDesc(false, I);
+
+  auto LoopInvIt = find_if(Phi->incoming_values(), [&](Use &U) {
+    return U.get() != Select && TheLoop->isLoopInvariant(U.get());
+  });
+  if (LoopInvIt == Phi->incoming_values().end())
+    return InstDesc(false, I);
+
+  // FIXME: Can this be removed too?
+  // Phi or Sel must be used only outside the loop,
+  // excluding if Phi use Sel or Sel use Phi
+  auto IsOnlyUsedOutsideLoop = [&](Value *V, Value *Ignore) {
+    return all_of(V->users(), [Ignore, TheLoop](User *U) {
+      if (U == Ignore)
+        return true;
+      if (auto *I = dyn_cast<Instruction>(U))
+        return !TheLoop->contains(I);
+      return true;
+    });
+  };
+  if (!IsOnlyUsedOutsideLoop(Phi, Select) ||
+      !IsOnlyUsedOutsideLoop(Select, Phi))
+    return InstDesc(false, I);
+
+  return InstDesc(I, RecurKind::CSA);
+}
+
+RecurrenceDescriptor::InstDesc
 RecurrenceDescriptor::isMinMaxPattern(Instruction *I, RecurKind Kind,
                                       const InstDesc &Prev) {
   assert((isa<CmpInst>(I) || isa<SelectInst>(I) || isa<CallInst>(I)) &&
@@ -881,6 +926,8 @@ RecurrenceDescriptor::InstDesc RecurrenceDescriptor::isRecurrenceInstr(
       return isConditionalRdxPattern(Kind, I);
     if (isFindLastIVRecurrenceKind(Kind) && SE)
       return isFindLastIVPattern(L, OrigPhi, I, *SE);
+    if (isCSARecurrenceKind(Kind))
+      return isConditionalScalarAssignmentPhi(OrigPhi, I, L);
     [[fallthrough]];
   case Instruction::FCmp:
   case Instruction::ICmp:
@@ -1035,6 +1082,11 @@ bool RecurrenceDescriptor::isReductionPHI(PHINode *Phi, Loop *TheLoop,
     LLVM_DEBUG(dbgs() << "Found a float MINIMUM reduction PHI." << *Phi << "\n");
     return true;
   }
+  if (AddReductionVar(Phi, RecurKind::CSA, TheLoop, FMF, RedDes, DB, AC, DT,
+                      SE)) {
+    LLVM_DEBUG(dbgs() << "Found a CSA reduction PHI." << *Phi << "\n");
+    return true;
+  }
   // Not a reduction of known type.
   return false;
 }
@@ -1150,6 +1202,7 @@ unsigned RecurrenceDescriptor::getOpcode(RecurKind Kind) {
   case RecurKind::UMin:
   case RecurKind::IAnyOf:
   case RecurKind::IFindLastIV:
+  case RecurKind::CSA:
     return Instruction::ICmp;
   case RecurKind::FMax:
   case RecurKind::FMin:

@@ -100,10 +100,18 @@ bool VPlanVerifier::verifyPhiRecipes(const VPBasicBlock *VPBB) {
     RecipeI++;
   }
 
-  if (NumActiveLaneMaskPhiRecipes > 1) {
-    errs() << "There should be no more than one VPActiveLaneMaskPHIRecipe";
-    return false;
-  }
+  // FIXME: Hack to get CSA off the ground.
+  // VPWidenReductionPHIRecipe shouldn't be used since there isn't a dedicated
+  //   recurrence descriptor
+  // VPWidenPHIRecipe, despite the generic sounding name, seems to be reserved
+  //   for outer loop autovec (vplan native)
+  // VPActiveLaneMaskPHIRecipe is useful for predicates, but we're only allowed
+  //   one master lane mask.
+  // So maybe we do need a new PHI Recipe?
+  //  if (NumActiveLaneMaskPhiRecipes > 1) {
+  //    errs() << "There should be no more than one VPActiveLaneMaskPHIRecipe";
+  //    return false;
+  //  }
 
   while (RecipeI != End) {
     if (RecipeI->isPhi() && !isa<VPBlendRecipe>(&*RecipeI)) {

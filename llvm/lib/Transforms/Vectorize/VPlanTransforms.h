@@ -22,6 +22,7 @@ namespace llvm {
 
 class InductionDescriptor;
 class Instruction;
+class LoopVectorizationLegality;
 class PHINode;
 class ScalarEvolution;
 class PredicatedScalarEvolution;
@@ -201,6 +202,10 @@ struct VPlanTransforms {
   /// candidates.
   static void narrowInterleaveGroups(VPlan &Plan, ElementCount VF,
                                      unsigned VectorRegWidth);
+
+  /// Change CSA reductions to save the appropriate state.
+  static void convertCSARecurrences(VPlan &Plan, VPRecipeBuilder &RecipeBuilder,
+                                    LoopVectorizationLegality *Legal);
 };
 
 } // namespace llvm

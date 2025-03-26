@@ -80,7 +80,8 @@ bool VPRecipeBase::mayWriteToMemory() const {
   case VPWidenLoadSC:
   case VPWidenPHISC:
   case VPWidenSC:
-  case VPWidenSelectSC: {
+  case VPWidenSelectSC:
+  case VPWidenSelectVectorSC: {
     const Instruction *I =
         dyn_cast_or_null<Instruction>(getVPSingleValue()->getUnderlyingValue());
     (void)I;
@@ -125,7 +126,8 @@ bool VPRecipeBase::mayReadFromMemory() const {
   case VPWidenIntOrFpInductionSC:
   case VPWidenPHISC:
   case VPWidenSC:
-  case VPWidenSelectSC: {
+  case VPWidenSelectSC:
+  case VPWidenSelectVectorSC: {
     const Instruction *I =
         dyn_cast_or_null<Instruction>(getVPSingleValue()->getUnderlyingValue());
     (void)I;
@@ -165,7 +167,8 @@ bool VPRecipeBase::mayHaveSideEffects() const {
   case VPWidenPHISC:
   case VPWidenPointerInductionSC:
   case VPWidenSC:
-  case VPWidenSelectSC: {
+  case VPWidenSelectSC:
+  case VPWidenSelectVectorSC: {
     const Instruction *I =
         dyn_cast_or_null<Instruction>(getVPSingleValue()->getUnderlyingValue());
     (void)I;
@@ -746,6 +749,20 @@ Value *VPInstruction::generate(VPTransformState &State) {
     return Builder.CreateCountTrailingZeroElems(Builder.getInt64Ty(), Mask,
                                                 true, Name);
   }
+  case VPInstruction::ExtractLastActive: {
+    Value *Data = State.get(getOperand(0));
+    Value *Mask = State.get(getOperand(1));
+    Value *Default = State.get(getOperand(2), /*IsScalar=*/true);
+    Type *VTy = Data->getType();
+
+    Module *M = State.Builder.GetInsertBlock()->getModule();
+    Function *ExtractLast = Intrinsic::getOrInsertDeclaration(
+        M, Intrinsic::experimental_vector_extract_last_active, {VTy});
+    assert(ExtractLast &&
+           "Can't retrieve vector intrinsic or vector-predication intrinsics.");
+
+    return Builder.CreateCall(ExtractLast, {Data, Mask, Default});
+  }
   default:
     llvm_unreachable("Unsupported opcode for instruction");
   }
@@ -790,6 +807,9 @@ InstructionCost VPInstruction::computeCost(ElementCount VF,
                                   {PredTy, Type::getInt1Ty(Ctx.LLVMCtx)});
     return Ctx.TTI.getIntrinsicInstrCost(Attrs, Ctx.CostKind);
   }
+  case VPInstruction::ExtractLastActive: {
+    llvm_unreachable("Implement cost for ExtractLastActive!");
+  }
   case VPInstruction::FirstOrderRecurrenceSplice: {
     assert(VF.isVector() && "Scalar FirstOrderRecurrenceSplice?");
     SmallVector<int> Mask(VF.getKnownMinValue());
@@ -828,6 +848,7 @@ bool VPInstruction::isVectorToScalar() const {
   return getOpcode() == VPInstruction::ExtractFromEnd ||
          getOpcode() == Instruction::ExtractElement ||
          getOpcode() == VPInstruction::FirstActiveLane ||
+         getOpcode() == VPInstruction::ExtractLastActive ||
          getOpcode() == VPInstruction::ComputeReductionResult ||
          getOpcode() == VPInstruction::AnyOf;
 }
@@ -895,6 +916,7 @@ bool VPInstruction::opcodeMayReadOrWriteFromMemory() const {
   case VPInstruction::CanonicalIVIncrementForPart:
   case VPInstruction::ExtractFromEnd:
   case VPInstruction::FirstActiveLane:
+  case VPInstruction::ExtractLastActive:
   case VPInstruction::FirstOrderRecurrenceSplice:
   case VPInstruction::LogicalAnd:
   case VPInstruction::Not:
@@ -1024,6 +1046,9 @@ void VPInstruction::print(raw_ostream &O, const Twine &Indent,
     break;
   case VPInstruction::FirstActiveLane:
     O << "first-active-lane";
+    break;
+  case VPInstruction::ExtractLastActive:
+    O << "extract-last-active";
     break;
   default:
     O << Instruction::getOpcodeName(getOpcode());
@@ -1387,7 +1412,9 @@ void VPHistogramRecipe::print(raw_ostream &O, const Twine &Indent,
     Mask->printAsOperand(O, SlotTracker);
   }
 }
+#endif
 
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
 void VPWidenSelectRecipe::print(raw_ostream &O, const Twine &Indent,
                                 VPSlotTracker &SlotTracker) const {
   O << Indent << "WIDEN-SELECT ";
@@ -1460,6 +1487,44 @@ InstructionCost VPWidenSelectRecipe::computeCost(ElementCount VF,
   return Ctx.TTI.getCmpSelInstrCost(
       Instruction::Select, VectorTy, CondTy, Pred, Ctx.CostKind,
       {TTI::OK_AnyValue, TTI::OP_None}, {TTI::OK_AnyValue, TTI::OP_None}, SI);
+}
+
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
+void VPWidenSelectVectorRecipe::print(raw_ostream &O, const Twine &Indent,
+                                      VPSlotTracker &SlotTracker) const {
+  O << Indent << "WIDEN-SELECT-VECTOR ";
+  printAsOperand(O, SlotTracker);
+  O << " = select ";
+  printFlags(O);
+  getOperand(0)->printAsOperand(O, SlotTracker);
+  O << ", ";
+  getOperand(1)->printAsOperand(O, SlotTracker);
+  O << ", ";
+  getOperand(2)->printAsOperand(O, SlotTracker);
+  O << (isInvariantCond() ? " (condition is loop invariant)" : "");
+}
+#endif
+
+void VPWidenSelectVectorRecipe::execute(VPTransformState &State) {
+  State.setDebugLocFrom(getDebugLoc());
+
+  Value *Cond = State.get(getCond(), /*IsScalar=*/true);
+  Value *Op0 = State.get(getOperand(1));
+  Value *Op1 = State.get(getOperand(2));
+  Value *Sel = State.Builder.CreateSelect(Cond, Op0, Op1);
+  State.set(this, Sel);
+  if (isa<FPMathOperator>(Sel))
+    setFlags(cast<Instruction>(Sel));
+  State.addMetadata(Sel, dyn_cast_or_null<Instruction>(getUnderlyingValue()));
+}
+
+InstructionCost
+VPWidenSelectVectorRecipe::computeCost(ElementCount VF,
+                                       VPCostContext &Ctx) const {
+  // Return a number for now; can tune later. This is likely to be expensive
+  // on many targets, as whole-vector selects may require branching to
+  // accomplish.
+  return 5;
 }
 
 VPRecipeWithIRFlags::FastMathFlagsTy::FastMathFlagsTy(
@@ -3586,6 +3651,13 @@ void VPReductionPHIRecipe::execute(VPTransformState &State) {
     // TODO: The sentinel value is not always necessary. When the start value is
     // a constant, and smaller than the start value of the induction variable,
     // the start value can be directly used to initialize the reduction phi.
+    Iden = StartV;
+    if (!ScalarPHI) {
+      IRBuilderBase::InsertPointGuard IPBuilder(Builder);
+      Builder.SetInsertPoint(VectorPH->getTerminator());
+      StartV = Iden = Builder.CreateVectorSplat(State.VF, Iden);
+    }
+  } else if (RecurrenceDescriptor::isCSARecurrenceKind(RK)) {
     Iden = StartV;
     if (!ScalarPHI) {
       IRBuilderBase::InsertPointGuard IPBuilder(Builder);

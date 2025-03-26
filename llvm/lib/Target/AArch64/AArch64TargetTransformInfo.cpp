@@ -4705,6 +4705,7 @@ bool AArch64TTIImpl::isLegalToVectorizeReduction(
   case RecurKind::FMulAdd:
   case RecurKind::IAnyOf:
   case RecurKind::FAnyOf:
+  case RecurKind::CSA:
     return true;
   default:
     return false;

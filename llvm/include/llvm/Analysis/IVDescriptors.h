@@ -55,9 +55,10 @@ enum class RecurKind {
   IFindLastIV, ///< FindLast reduction with select(icmp(),x,y) where one of
                ///< (x,y) is increasing loop induction, and both x and y are
                ///< integer type.
-  FFindLastIV ///< FindLast reduction with select(fcmp(),x,y) where one of (x,y)
-              ///< is increasing loop induction, and both x and y are integer
-              ///< type.
+  FFindLastIV, ///< FindLast reduction with select(fcmp(),x,y) where one of
+               ///< (x,y) is increasing loop induction, and both x and y are
+               ///< integer type.
+  CSA, /// document here....
   // TODO: Any_of and FindLast reduction need not be restricted to integer type
   // only.
 };
@@ -168,6 +169,10 @@ public:
   static InstDesc isFindLastIVPattern(Loop *TheLoop, PHINode *OrigPhi,
                                       Instruction *I, ScalarEvolution &SE);
 
+  /// TODO
+  static InstDesc isConditionalScalarAssignmentPhi(PHINode *Phi, Instruction *I,
+                                                   Loop *TheLoop);
+
   /// Returns a struct describing if the instruction is a
   /// Select(FCmp(X, Y), (Z = X op PHINode), PHINode) instruction pattern.
   static InstDesc isConditionalRdxPattern(RecurKind Kind, Instruction *I);
@@ -257,6 +262,10 @@ public:
   ///   select(cmp(),x,y) where one of (x,y) is increasing loop induction.
   static bool isFindLastIVRecurrenceKind(RecurKind Kind) {
     return Kind == RecurKind::IFindLastIV || Kind == RecurKind::FFindLastIV;
+  }
+
+  static bool isCSARecurrenceKind(RecurKind Kind) {
+    return Kind == RecurKind::CSA;
   }
 
   /// Returns the type of the recurrence. This type can be narrower than the
